@@ -1,0 +1,59 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load custom_tags %}
+{% load dict_get %}
+
+{% block title %}Painel do Aluno{% endblock %}
+{% block header_title %}Painel do Aluno{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'core/css/painel_aluno.css' %}">
+{% endblock %}
+
+{% block user_info %}
+  <span>Olá, <a href="#">{{ aluno.nome_completo.split|first }}</a></span>
+  <a href="{% url 'editar_perfil_aluno' %}"><i class="fas fa-user"></i></a>
+  <a href="{% url 'logout' %}"><i class="fas fa-power-off"></i></a>
+{% endblock %}
+
+{% block content %}
+  <div class="topo-titulos">
+    <span class="titulo">MINHAS NOTAS</span>
+    <span class="turma">Turma: {{ aluno.turma.nome }}</span>
+  </div>
+
+  <div class="painel">
+    <table>
+      <thead>
+        <tr>
+          <th class="destaque">Disciplina</th>
+          <th>1º</th>
+          <th>2º</th>
+          <th>3º</th>
+          <th>4º</th>
+          <th class="destaque">Média</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for disciplina in disciplinas %}
+          {% with nota=notas_dict|dict_get:disciplina.id %}
+          <tr>
+            <td>{{ disciplina.nome }}</td>
+            <td>{{ nota.nota1|default_if_none:"-" }}</td>
+            <td>{{ nota.nota2|default_if_none:"-" }}</td>
+            <td>{{ nota.nota3|default_if_none:"-" }}</td>
+            <td>{{ nota.nota4|default_if_none:"-" }}</td>
+            <td>
+              {% if nota and nota.media %}
+                {{ nota.media|floatformat:2 }}
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          </tr>
+          {% endwith %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

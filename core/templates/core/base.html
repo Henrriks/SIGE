@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Meu Sistema{% endblock %}</title>
+
+  <!-- CSS global -->
+  <link rel="stylesheet" href="{% static 'core/css/global.css' %}" />
+
+  <!-- CSS extra da página -->
+  {% block extra_css %}{% endblock %}
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+</head>
+<body>
+
+  <!-- Cabeçalho fixo -->
+  <header class="header">
+    <div class="logo-titulo">
+      <img src="{% static 'core/img/Logo-menu.png' %}" alt="Logo do sistema" />
+      <h1>{% block header_title %}{% endblock %}</h1>
+    </div>
+    <div class="user-info">
+      {% block user_info %}
+      <!-- Pode ser sobrescrito -->
+      <span>Olá, Usuário!</span>
+      {% endblock %}
+    </div>
+  </header>
+
+  <div class="linha-abaixo-header"></div>
+
+  <!-- Conteúdo principal da página -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <div class="linha-acima-rodape"></div>
+
+  <!-- Rodapé fixo -->
+  <footer class="rodape">
+    <img src="{% static 'core/img/Logo-rodape.png' %}" alt="Logo rodapé" />
+  </footer>
+
+</body>
+</html>

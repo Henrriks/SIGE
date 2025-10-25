@@ -1,0 +1,129 @@
+from django import forms
+from django.contrib.auth.models import User
+from .models import Professor, Aluno, Disciplina, Turma, Nota, Gestor
+from django.contrib.auth import authenticate
+
+
+# --- LOGIN ---
+class LoginForm(forms.Form):
+    email = forms.EmailField(widget=forms.EmailInput(attrs={'placeholder': 'E-mail'}))
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'placeholder': 'Senha'}))
+
+    def clean(self):
+        email = self.cleaned_data.get('email')
+        password = self.cleaned_data.get('password')
+
+        try:
+            user_obj = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise forms.ValidationError("E-mail não encontrado.")
+
+        user = authenticate(username=user_obj.username, password=password)
+        if not user:
+            raise forms.ValidationError("Senha incorreta.")
+        self.user = user
+        return self.cleaned_data
+
+    def get_user(self):
+        return self.user
+
+
+# --- PROFESSOR ---
+class ProfessorForm(forms.ModelForm):
+    nome_completo = forms.CharField(label='Nome completo')
+    email = forms.EmailField(label='E-mail')
+    password = forms.CharField(label='Senha', widget=forms.PasswordInput)
+
+    class Meta:
+        model = Professor
+        fields = ['nome_completo']
+
+
+# --- ALUNO ---
+class AlunoForm(forms.ModelForm):
+    nome_completo = forms.CharField(label='Nome completo')
+    email = forms.EmailField(label='E-mail')
+    password = forms.CharField(label='Senha', widget=forms.PasswordInput)
+    idade = forms.IntegerField(label='Idade')
+
+    class Meta:
+        model = Aluno
+        fields = ['nome_completo', 'idade', 'turma']
+
+
+# --- DISCIPLINA ---
+class DisciplinaForm(forms.ModelForm):
+    class Meta:
+        model = Disciplina
+        fields = ['nome', 'professor', 'turma']
+
+
+# --- TURMA ---
+class TurmaForm(forms.ModelForm):
+    class Meta:
+        model = Turma
+        fields = ['nome']
+
+
+# --- NOTA ---
+class NotaForm(forms.ModelForm):
+    class Meta:
+        model = Nota
+        fields = ['nota1', 'nota2', 'nota3', 'nota4']
+
+
+# --- EDITAR PERFIL SUPERUSUÁRIO ---
+class EditarPerfilForm(forms.ModelForm):
+    nome_completo = forms.CharField(label='Nome completo')
+    nova_senha = forms.CharField(
+        required=False,
+        label='Nova senha (opcional)',
+        widget=forms.PasswordInput(attrs={'placeholder': 'Deixe em branco para manter a senha atual'})
+    )
+
+    class Meta:
+        model = User
+        fields = ['nome_completo', 'email']
+
+
+# --- EDITAR PERFIL PROFESSOR ---
+class EditarPerfilProfessorForm(forms.ModelForm):
+    nome_completo = forms.CharField(label='Nome completo')
+    nova_senha = forms.CharField(
+        label='Nova Senha',
+        required=False,
+        widget=forms.PasswordInput
+    )
+
+    class Meta:
+        model = User
+        fields = ['nome_completo', 'email']
+
+
+# --- EDITAR PERFIL ALUNO ---
+class EditarPerfilAlunoForm(forms.ModelForm):
+    nome_completo = forms.CharField(label='Nome completo')
+    nova_senha = forms.CharField(
+        label='Nova Senha',
+        required=False,
+        widget=forms.PasswordInput
+    )
+
+    class Meta:
+        model = User
+        fields = ['nome_completo', 'email']
+
+
+class GestorForm(forms.ModelForm):
+    email = forms.EmailField()
+    senha = forms.CharField(widget=forms.PasswordInput)
+
+    class Meta:
+        model = Gestor
+        fields = ['nome_completo', 'cargo', 'email', 'senha']
+
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Já existe um usuário com este e-mail.")
+        return email

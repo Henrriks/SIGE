@@ -1,0 +1,55 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Painel do Superusuário{% endblock %}
+{% block header_title %}Painel do Superusuário{% endblock %}
+
+
+{% block user_info %}
+  
+  <span>Olá, <a href="{% url 'editar_perfil_super' %}" title="Editar Perfil">{{ request.user.get_full_name|default:request.user.username }}</a></span>
+  <a href="{% url 'editar_perfil_super' %}" title="Editar Perfil"><i class="fas fa-user"></i></a>
+  
+  <a href="{% url 'logout' %}" title="Sair"><i class="fas fa-power-off"></i></a>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/painel_super.css' %}" />
+{% endblock %}
+
+{% block content %}
+
+  <section class="icones-principais">
+    <a href="{% url 'listar_alunos' %}" class="icone" title="Gerenciar Alunos">
+      <img src="{% static 'core/img/aluno.png' %}" alt="Aluno" />
+      <p>Discentes</p>
+    </a>
+    <a href="{% url 'listar_professores' %}" class="icone" title="Gerenciar Professores">
+      <img src="{% static 'core/img/professor.png' %}" alt="Professor" />
+      <p>Docentes</p>
+    </a>
+    <a href="{% url 'listar_disciplinas' %}" class="icone" title="Gerenciar Disciplinas">
+      <img src="{% static 'core/img/disciplina.png' %}" alt="Disciplina" />
+      <p>Disciplinas</p>
+    </a>
+    <a href="{% url 'listar_turmas' %}" class="icone" title="Gerenciar Turmas">
+      <img src="{% static 'core/img/turma.png' %}" alt="Turma" />
+      <p>Turmas</p>
+    </a>
+    {% if cargo in 'diretor vice_diretor' or user.is_superuser %}
+  <div class="gestao-container">
+    <h2>Gestão Escolar</h2>
+    <a href="{% url 'listar_gestores' %}" class="btn">Gerenciar Gestores</a>
+    <a href="{% url 'cadastrar_gestor' %}" class="btn">Cadastrar Gestor</a>
+  </div>
+  {% endif %}
+  </section>
+
+  <section class="info-box">
+    <div><strong>{{ total_alunos }}</strong><br>Discentes</div>
+    <div><strong>{{ total_professores }}</strong><br>Docentes</div>
+    <div><strong>{{ total_disciplinas }}</strong><br>Disciplinas</div>
+    <div><strong>{{ total_turmas }}</strong><br>Turmas</div>
+  </section>
+
+{% endblock %}
