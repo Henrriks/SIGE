@@ -1,0 +1,180 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  background-color: #d3d3d3;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 900px; 
+  padding: 20px;
+}
+
+.login-box {
+  display: flex;
+  width: 100%;
+  background-color: #ddebee;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.2);
+  min-height: 450px;
+}
+
+/* LOGO ocupa 70% */
+.logo-area {
+  background-color: #1a2530;
+  flex: 0.7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.logo {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  object-fit: contain;
+  transform: scale(1.3);
+  transition: transform 0.3s ease;
+}
+
+/* Nome e subtitulo*/
+.SIGE {
+  color: white;
+  font-size: 34px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+
+.subtitulo {
+  color: #dcdcdc;
+  font-size: 15px;
+  font-style: italic;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+/* Linha branca abaixo do subtítulo */
+.subtitulo::after {
+  content: "";
+  display: block;
+  width: 170px;           
+  height: 2px;            
+  background-color: #ffffff;
+  margin: 10px auto 0;    
+  border-radius: 2px;
+}
+
+/* FORMULÁRIO ocupa 30% */
+.form-area {
+  flex: 0.3;
+  padding: 50px 30px;
+  background-color: #c8d9dd;
+}
+
+.form-area h2 {
+  font-size: 40px;
+  color: #000000;
+  margin-bottom: 25px;
+  font-weight: bold;
+  text-align: center;
+  font-family: Poppins; /* fonte Poppins */
+  font-weight: 700; /* negrito */
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.input-container {
+  margin-top: 50px;
+  position: relative;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.input-container input {
+  width: 100%;
+  padding: 12px 12px 12px 45px;
+  border-top: transparent;
+  border-left: transparent;
+  border-bottom: 3px solid gray;
+  border-right: 3px solid gray;
+  border-radius: 7px;
+  background-color: #fffffe;
+  color: rgb(0, 0, 0);
+  outline: none;
+  font-size: 15px;
+  box-shadow: inset 0 0 0 transparent;
+  transition: border 0.2s ease, box-shadow 0.2s ease, background-color 0.1s ease; /* transição suave */
+}
+
+.input-container input::placeholder {
+  color: #000000;
+  opacity: 0.8;
+  font-family: Helvetica;
+}
+
+.input-container .icon {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  color: #000000;
+  font-size: 16px;
+  pointer-events: none;
+  transition: all 0.5s ease;
+}
+
+.input-container input:focus {
+  background-color: #ffffff;
+
+  border-bottom: 5px solid grey;
+  border-right: 5px solid grey;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1); /* leve destaque */
+  transition: all 0.5s ease;
+}
+
+.input-container input:focus + .icon {
+  color: grey;
+  transform: translateY(-50%) scale(1.3);
+  filter: brightness(1.0);
+}
+
+button {
+  margin-top: 20px;
+  background-color: #2a6ed2;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.5s ease, transform 0.5s ease;
+  width: fit-content;
+}
+
+button:hover {
+  color: #2a6ed2;
+  background-color: rgb(255, 255, 255);
+  transform: scale(1.05);
+  border: 2px solid grey;
+}
+
+.forgot-link {
+  margin-top: 20px;
+}
