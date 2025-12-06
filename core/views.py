@@ -54,12 +54,15 @@ def is_superuser(user):
 @login_required
 @user_passes_test(is_superuser)
 def painel_super(request):
+    foto_perfil_url = get_foto_perfil(request.user)
+
     return render(request, 'core/painel_super.html', {
         'usuario': request.user,
         'total_professores': Professor.objects.count(),
         'total_alunos': Aluno.objects.count(),
         'total_turmas': Turma.objects.count(),
         'total_disciplinas': Disciplina.objects.count(),
+        'foto_perfil_url': foto_perfil_url,
     })
 
 
@@ -69,7 +72,7 @@ def painel_super(request):
 def editar_perfil(request):
     user = request.user
 
-    # Identifica qual tipo de perfil o superusuário está usando
+    # Descobre se esse user é professor/aluno/gestor
     perfil = None
     if hasattr(user, "professor"):
         perfil = user.professor
@@ -79,7 +82,7 @@ def editar_perfil(request):
         perfil = user.gestor
 
     if request.method == 'POST':
-        form = EditarPerfilForm(request.POST, request.FILES, instance=user)
+        form = EditarPerfilForm(request.POST, instance=user)
 
         if form.is_valid():
             user = form.save(commit=False)
@@ -91,8 +94,8 @@ def editar_perfil(request):
                 user.save()
                 update_session_auth_hash(request, user)
 
-            # Salva foto (se houver perfil)
-            foto = form.cleaned_data.get("foto")
+            # Foto vinda do input <input type="file" name="foto">
+            foto = request.FILES.get("foto")
             if perfil and foto:
                 perfil.foto = foto
                 perfil.save()
@@ -103,7 +106,58 @@ def editar_perfil(request):
     else:
         form = EditarPerfilForm(instance=user)
 
-    return render(request, "core/editar_perfil.html", {"form": form, "perfil": perfil})
+    # para o template poder mostrar a foto atual
+    foto_atual = None
+    if perfil and perfil.foto:
+        foto_atual = perfil.foto.url
+
+    return render(request, "core/editar_perfil.html", {
+        "form": form,
+        "perfil": perfil,
+        "foto_atual": foto_atual,
+        "foto_perfil_url": get_foto_perfil(user),  # já reaproveita na base
+    })
+
+
+
+def get_foto_perfil(user):
+    """Retorna a foto do perfil caso exista."""
+    try:
+        if hasattr(user, "professor") and user.professor.foto:
+            return user.professor.foto.url
+        if hasattr(user, "aluno") and user.aluno.foto:
+            return user.aluno.foto.url
+        if hasattr(user, "gestor") and user.gestor.foto:
+            return user.gestor.foto.url
+    except:
+        pass
+    return None
+
+@login_required
+def remover_foto_perfil(request):
+    user = request.user
+
+    # detecta perfil (professor, aluno ou gestor)
+    perfil = None
+    if hasattr(user, "professor"):
+        perfil = user.professor
+    elif hasattr(user, "aluno"):
+        perfil = user.aluno
+    elif hasattr(user, "gestor"):
+        perfil = user.gestor
+
+    if not perfil:
+        messages.error(request, "Nenhum perfil associado ao usuário.")
+        return redirect("editar_perfil")
+
+    # remove a foto se existir
+    if perfil.foto:
+        perfil.foto.delete(save=False)  # apaga o arquivo físico
+        perfil.foto = None
+        perfil.save()
+
+    messages.success(request, "Foto removida com sucesso!")
+    return redirect("editar_perfil")
 
 
 # -------------------- PROFESSORES --------------------
@@ -534,7 +588,11 @@ def painel_professor(request):
         return redirect('login')
     professor = request.user.professor
     disciplinas = Disciplina.objects.filter(professor=professor)
-    return render(request, 'core/painel_professor.html', {'disciplinas': disciplinas})
+    foto_perfil_url = get_foto_perfil(request.user)
+    return render(request, 'core/painel_professor.html', {
+        'disciplinas': disciplinas,
+        'foto_perfil_url': foto_perfil_url,
+    })
 
     
 
@@ -672,3 +730,31 @@ def listar_disciplinas_turma(request, turma_id):
         "disciplinas": disciplinas,
         "query": query
     })
+
+
+# helper para pegar foto do usuário de forma segura
+def get_foto_perfil(user):
+    # Professor
+    try:
+        if hasattr(user, "professor") and user.professor.foto:
+            return user.professor.foto.url
+    except:
+        pass
+
+    # Aluno
+    try:
+        if hasattr(user, "aluno") and user.aluno.foto:
+            return user.aluno.foto.url
+    except:
+        pass
+
+    # Gestor
+    try:
+        if hasattr(user, "gestor") and user.gestor.foto:
+            return user.gestor.foto.url
+    except:
+        pass
+
+    return None
+
+

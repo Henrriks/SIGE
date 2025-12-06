@@ -80,7 +80,6 @@ class EditarPerfilForm(forms.ModelForm):
         label='Nova senha (opcional)',
         widget=forms.PasswordInput
     )
-    foto = forms.ImageField(required=False)
 
     class Meta:
         model = User
@@ -89,7 +88,6 @@ class EditarPerfilForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and (not self.initial.get('nome_completo')):
-            # inicializa o campo com first_name + last_name
             self.initial['nome_completo'] = f"{self.instance.first_name} {self.instance.last_name}"
 
     def save(self, commit=True):
@@ -100,6 +98,7 @@ class EditarPerfilForm(forms.ModelForm):
         if commit:
             user.save()
         return user
+
 
 
 # --- EDITAR PERFIL PROFESSOR ---
