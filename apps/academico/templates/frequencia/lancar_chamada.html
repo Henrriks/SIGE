@@ -1,0 +1,193 @@
+{# ============================================================ #}
+{# template: frequencia/lancar_chamada.html                    #}
+{# view   : lancar_chamada                                     #}
+{# contexto: disciplina, alunos, data_selecionada,             #}
+{#           frequencias_existentes                             #}
+{# Requer templatetag: {% load get_item %}                     #}
+{# FIX: campo renomeado de "justificativa_{id}" para           #}
+{#      "observacao_{id}" conforme o model Frequencia e a view;#}
+{#      f.justificativa substituído por f.observacao;          #}
+{#      input hidden name="data" movido para o form correto.   #}
+{# ============================================================ #}
+{% extends "core/base.html" %}
+{% load static %}
+{% load get_item %}
+
+{# Título com nome da disciplina #}
+{% block title %}Chamada — {{ disciplina.nome }}{% endblock %}
+
+{% block extra_css %}
+{# Folha de estilo da tela de chamada #}
+<link rel="stylesheet" href="{% static 'core/css/lancar_chamada_alunos.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="pagina-conteudo">
+
+{# ── Breadcrumb de navegação ── #}
+<div class="breadcrumb">
+  <a href="{% url 'disciplinas_professor' %}">
+    <i class="fa-solid fa-house"></i> Início
+  </a>
+  <i class="fa-solid fa-chevron-right"></i>
+  <a href="{% url 'historico_frequencia' disciplina.id %}">Histórico</a>
+  <i class="fa-solid fa-chevron-right"></i>
+  <span>Chamada — {{ disciplina.nome }}</span>
+</div>
+
+{# ── Cabeçalho do módulo ── #}
+<div class="mod-header">
+  <div>
+    <h1><i class="fa-solid fa-clipboard-list"></i> Lançar Chamada</h1>
+    <p>{{ disciplina.nome }} &mdash; {{ disciplina.turma }}</p>
+  </div>
+  {# Links de navegação do cabeçalho #}
+  <div style="display: flex; gap: 10px;">
+    <a href="{% url 'visualizar_disciplinas' disciplina.id %}" class="btn-header" style="background: rgba(148, 163, 184, 0.1); color: var(--text-secondary); border-color: var(--border-mid);">
+      <i class="fa-solid fa-arrow-left"></i> Voltar ao Diário
+    </a>
+    <a href="{% url 'historico_frequencia' disciplina.id %}" class="btn-header">
+      <i class="fa-solid fa-clock-rotate-left"></i> Ver histórico
+    </a>
+  </div>
+</div>
+
+
+{# ── Seletor de data: GET com parâmetro "data" ── #}
+<form method="get">
+  <div class="date-bar">
+    <label for="data">
+      <i class="fa-solid fa-calendar-day"></i> Data da aula:
+    </label>
+    <input type="date"
+           id="data"
+           name="data"
+           value="{{ data_selecionada|date:'Y-m-d' }}">
+    <button type="submit">
+      <i class="fa-solid fa-magnifying-glass"></i> Carregar
+    </button>
+  </div>
+</form>
+
+{# ── Formulário principal de chamada ── #}
+<form method="post">
+  {% csrf_token %}
+  {# Data selecionada é enviada via hidden para o POST #}
+  <input type="hidden"
+         name="data"
+         value="{{ data_selecionada|date:'Y-m-d' }}">
+
+  {# ── Atalhos de marcar todos presente / todos faltantes ── #}
+  <div class="marcar-todos">
+    <button type="button"
+            class="btn-marcar btn-marcar--todos"
+            onclick="marcarTodos(true)">
+      <i class="fa-solid fa-circle-check"></i> Todos presentes
+    </button>
+    <button type="button"
+            class="btn-marcar btn-marcar--faltas"
+            onclick="marcarTodos(false)">
+      <i class="fa-solid fa-circle-xmark"></i> Todos faltantes
+    </button>
+  </div>
+
+  {# ── Tabela de chamada ── #}
+  <div class="chamada-card">
+    <div class="chamada-card__head">
+      <span>Aluno</span>
+      <span>Presença</span>
+      {# FIX: campo correto é "observacao", não "justificativa" #}
+      <span>Observação (se falta)</span>
+    </div>
+
+    {% for aluno in alunos %}
+    {# Busca o registro de frequência existente para este aluno na data #}
+    {% with f=frequencias_existentes|get_item:aluno.id %}
+    <div class="chamada-row">
+
+      {# Nome do aluno com ícone #}
+      <div class="aluno-nome">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-user"></i>
+          {{ aluno.nome_completo }}
+          {% if aluno.ficha_medica.condicoes_pcd or aluno.possui_necessidade_especial %}
+            <i class="fa-solid fa-universal-access" style="color: var(--accent-violet); font-size: 0.95rem;" title="Aluno PCD: {{ aluno.ficha_medica.detalhes_pcd|default:aluno.descricao_necessidade|default:'Necessidade não especificada' }}"></i>
+          {% endif %}
+          {% if aluno.ficha_medica.alergias %}
+            <i class="fa-solid fa-biohazard" style="color: var(--accent-ruby); font-size: 0.95rem; margin-left: 3px;" title="Alergia(s): {{ aluno.ficha_medica.alergias }}"></i>
+          {% endif %}
+        </div>
+        {% if aluno.user_id in ids_usuarios_de_atestado %}
+          <span class="badge-atestado" style="background: #0ea5e9; color: white; font-size: 0.65rem; padding: 3px 10px; border-radius: 20px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; margin-left: 15px; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);">
+            <i class="fa-solid fa-file-medical"></i> ATESTADO APROVADO
+          </span>
+        {% endif %}
+      </div>
+
+      {# Toggle de presença: checkbox enviado como lista "presentes" #}
+      <div class="presenca-toggle {% if aluno.user_id in ids_usuarios_de_atestado %}atestado-locked{% endif %}">
+        <input type="checkbox"
+               name="presentes"
+               value="{{ aluno.id }}"
+               id="aluno_{{ aluno.id }}"
+               onchange="toggleObservacao({{ aluno.id }}, this.checked)"
+               {# Pré-marca se há registro de presença #}
+               {% if f and f.presente %}checked{% endif %}
+               {% if aluno.user_id in ids_usuarios_de_atestado %}disabled{% endif %}>
+        <label for="aluno_{{ aluno.id }}" {% if aluno.user_id in ids_usuarios_de_atestado %}style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+          <i class="fa-solid fa-check"></i>
+          <span class="status-txt">
+            {# Texto inicial baseado no registro existente #}
+            {% if aluno.user_id in ids_usuarios_de_atestado %}
+               Justificada (Atestado)
+            {% elif f and f.presente %}
+               Presente
+            {% else %}
+               Falta
+            {% endif %}
+          </span>
+        </label>
+      </div>
+
+      {# FIX: name="observacao_{id}" conforme Frequencia.observacao e a view #}
+      <input type="text"
+             name="observacao_{{ aluno.id }}"
+             class="observacao-input"
+             id="obs_{{ aluno.id }}"
+             placeholder="Motivo da falta..."
+             {# Pré-popula com observação salva anteriormente #}
+             value="{% if aluno.user_id in ids_usuarios_de_atestado %}Afastamento médico aprovado{% elif f %}{{ f.observacao }}{% endif %}"
+             {# Desabilita campo se o aluno está presente ou de atestado #}
+             {% if f and f.presente or aluno.user_id in ids_usuarios_de_atestado %}disabled{% endif %}>
+
+    </div>
+    {% endwith %}
+    {% empty %}
+    {# Estado vazio: nenhum aluno na turma #}
+    <div class="empty-chamada">
+      <i class="fa-solid fa-users-slash"></i>
+      Nenhum aluno cadastrado nesta turma.
+    </div>
+    {% endfor %}
+  </div>
+  {# ── fim chamada-card ── #}
+
+  {# ── Botões de ação: voltar e salvar ── #}
+  <div class="acoes">
+    <a href="{% url 'historico_frequencia' disciplina.id %}"
+       class="btn-voltar">
+      <i class="fa-solid fa-arrow-left"></i> Voltar
+    </a>
+    <button type="submit" class="btn-salvar">
+      <i class="fa-solid fa-floppy-disk"></i> Salvar chamada
+    </button>
+  </div>
+
+</form>
+
+</div>{# /pagina-conteudo #}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'core/js/attendance.js' %}"></script>
+{% endblock %}

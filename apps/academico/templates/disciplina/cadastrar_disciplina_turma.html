@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}
+  {% if disciplina %}Editar Disciplina{% else %}Cadastrar Disciplina{% endif %} - {{ turma.nome }}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/cadastrar_disciplina.css' %}?v=5">
+{% endblock %}
+
+{% block content %}
+<div class="main-area">
+
+  {# ════════════════ HEADER DO PAINEL ════════════════ #}
+  <div class="header-painel">
+      <div class="header-esquerda">
+          <span class="header-label">Administrativo · Acadêmico</span>
+          <h1>{% if disciplina %}Editar{% else %}Nova{% endif %} <span class="destaque">Disciplina</span></h1>
+          <div class="header-breadcrumb">
+              <a href="{% url 'painel_super' %}">Dashboard</a>
+              <i class="fa-solid fa-chevron-right"></i>
+              <a href="{% url 'listar_turmas' %}">Turmas</a>
+              <i class="fa-solid fa-chevron-right"></i>
+              <a href="{% url 'listar_disciplinas_turma' turma.id %}">{{ turma.nome }}</a>
+              <i class="fa-solid fa-chevron-right"></i>
+              <span>{% if disciplina %}Edição{% else %}Cadastro{% endif %}</span>
+          </div>
+      </div>
+  </div>
+
+  {# ════════════════ CARD DO FORMULÁRIO ════════════════ #}
+  <div class="form-card">
+      <div class="form-card-titulo">
+          <div class="form-card-icone">
+              <i class="fa-solid fa-book-open-reader"></i>
+          </div>
+          <div class="form-card-titulo-texto">
+              <h2>{% if disciplina %}Modificar Disciplina{% else %}Informações da Disciplina{% endif %}</h2>
+              <p>Insira os detalhes e a alocação de docente para a turma <strong>{{ turma.nome }}</strong>.</p>
+          </div>
+      </div>
+
+      {# MENSAGENS DE ERRO/ALERTA #}
+      {% if messages %}
+          {% for message in messages %}
+              <div class="confirmacao-senha" style="display: block; margin-bottom: 20px;">
+                  <i class="fa-solid fa-circle-exclamation"></i> {{ message }}
+              </div>
+          {% endfor %}
+      {% endif %}
+
+      <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          
+          <div class="etapa ativa">
+              
+              {# NOME DA DISCIPLINA #}
+              <div class="caixa-texto full">
+                  <label class="required" for="id_nome">
+                      <i class="fa-solid fa-tag"></i> Nome da Disciplina
+                  </label>
+                  <input type="text" name="nome" id="id_nome" required
+                         placeholder="Ex: Matemática Aplicada" value="{{ disciplina.nome|default:'' }}">
+              </div>
+
+              {# DOCENTE RESPONSÁVEL #}
+              <div class="caixa-texto full">
+                  <label class="required" for="id_professor">
+                      <i class="fa-solid fa-person-chalkboard"></i> Docente Responsável
+                  </label>
+                  <select name="professor" id="id_professor" required>
+                      <option value="" disabled selected>Selecione o professor...</option>
+                      {% for professor in professores %}
+                          <option value="{{ professor.id }}"
+                            {% if disciplina and disciplina.professor.id == professor.id %}
+                              selected
+                            {% endif %}>
+                            {{ professor.nome_completo }}
+                          </option>
+                      {% endfor %}
+                  </select>
+              </div>
+
+              {# AÇÕES DO FORMULÁRIO #}
+              <div class="botoes">
+                  <a href="{% url 'listar_disciplinas_turma' turma.id %}" class="btn-voltar-tab">
+                      <i class="fa-solid fa-arrow-left"></i> Cancelar
+                  </a>
+                  
+                  <button type="submit" class="btn salvar">
+                      {% if disciplina %}<i class="fa-solid fa-check"></i> Salvar Modificações
+                      {% else %}<i class="fa-solid fa-plus"></i> Adicionar Disciplina{% endif %}
+                  </button>
+              </div>
+
+          </div>
+      </form>
+  </div>
+
+</div>
+{% endblock %}

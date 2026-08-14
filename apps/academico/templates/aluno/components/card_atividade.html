@@ -1,0 +1,86 @@
+{% load get_item %}
+
+{% with entrega=entregas_dict|get_item:atv.id %}
+{% with nota_obj=notas_dict|get_item:atv.id %}
+<div class="card-atv">
+    <div class="atv-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="prof-avatar-mini" style="width: 32px; height: 32px; border-radius: 50%; overflow: hidden; border: 1.5px solid var(--border-mid); background: var(--bg-surface); flex-shrink: 0;" title="Prof. {{ atv.disciplina.professor.nome_completo }}">
+                {% if atv.disciplina.professor.foto %}
+                    <img src="{{ atv.disciplina.professor.foto.url }}" alt="{{ atv.disciplina.professor.nome_completo }}" style="width: 100%; height: 100%; object-fit: cover;">
+                {% else %}
+                    <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: var(--text-muted);"><i class="fa-solid fa-user"></i></div>
+                {% endif %}
+            </div>
+            <div style="display: flex; flex-direction: column;">
+                <span class="atv-disciplina">{{ atv.disciplina.nome }}</span>
+                <span style="font-size: 0.7rem; color: var(--text-muted); font-weight: 600;">Prof. {{ atv.disciplina.professor.nome_completo }}</span>
+            </div>
+        </div>
+        
+        {% if entrega %}
+            {% if entrega.status == 'CORRIGIDO' %}
+                <span class="atv-status status-avaliado" style="background: rgba(66, 133, 244, 0.1); color: var(--accent-blue);">
+                    <i class="fa-solid fa-check-double"></i> Corrigido
+                </span>
+            {% elif entrega.status == 'DEVOLVIDO' %}
+                <span class="atv-status status-avaliado" style="background: rgba(244, 63, 94, 0.1); color: var(--accent-rose);">
+                    <i class="fa-solid fa-reply"></i> Devolvido
+                </span>
+            {% else %}
+                <span class="atv-status status-entregue">
+                    <i class="fa-solid fa-paper-plane"></i> Entregue
+                </span>
+            {% endif %}
+        {% else %}
+            <span class="atv-status status-pendente">
+                <i class="fa-solid fa-clock"></i> Pendente
+            </span>
+        {% endif %}
+    </div>
+
+    <h3 class="atv-titulo">{{ atv.titulo }}</h3>
+    
+    <div class="atv-data">
+        <i class="fa-solid fa-calendar-day"></i>
+        <span>
+            {% if atv.tipo == 'PROVA' %}
+                Data: {{ atv.data|date:"d/m/Y" }}
+            {% else %}
+                Prazo: {{ atv.prazo_final|date:"d/m/Y - H:i" }}
+            {% endif %}
+        </span>
+    </div>
+
+    <p class="atv-desc">{{ atv.descricao|truncatechars:100 }}</p>
+
+    <div class="atv-footer">
+        {% if nota_obj %}
+            <div class="atv-nota">Nota: {{ nota_obj.valor }}</div>
+        {% elif entrega.status == 'CORRIGIDO' or entrega.status == 'DEVOLVIDO' %}
+             <div class="atv-nota" style="font-size: 0.8rem; color: var(--text-muted);">Aguardando Nota</div>
+        {% else %}
+            <div></div>
+        {% endif %}
+
+        {% if entrega.feedback_professor %}
+            <div class="sige-badge sige-badge-accent" style="text-transform: none; gap: 5px; font-size: 0.68rem;">
+                <i class="fa-solid fa-comment-dots"></i> Correção
+            </div>
+        {% endif %}
+
+        <a href="{% url 'entregar_atividade' atv.id %}" class="btn-entregar">
+            {% if entrega %}
+                {% if atv.exibir_gabarito_para_aluno %}
+                    <i class="fa-solid fa-eye"></i> Ver / Gabarito
+                {% else %}
+                    <i class="fa-solid fa-pen-to-square"></i> Ver / Editar
+                {% endif %}
+            {% else %}
+                <i class="fa-solid fa-upload"></i> Entregar Agora
+            {% endif %}
+        </a>
+    </div>
+</div>
+{% endwith %}
+{% endwith %}

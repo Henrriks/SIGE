@@ -1,0 +1,174 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Minha Frequência{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/frequencia_aluno.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="pagina-conteudo">
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <a href="{% url 'painel_aluno' %}"><i class="fa-solid fa-house"></i> Painel</a>
+  <i class="fa-solid fa-chevron-right"></i>
+  <span>Minha Frequência</span>
+</div>
+
+<!-- Header -->
+<div class="freq-header">
+  <div class="freq-header__left">
+    <h1><i class="fa-solid fa-chart-pie"></i> Minha Frequência</h1>
+    <p>{{ aluno.nome_completo }} &mdash; {{ aluno.turma }}</p>
+  </div>
+  <div class="freq-header__action">
+    <a href="{% url 'painel_aluno' %}" class="btn-voltar">
+      <i class="fa-solid fa-arrow-left"></i> Voltar ao painel
+    </a>
+  </div>
+</div>
+
+<!-- Alerta se houver risco -->
+{% for item in frequencia_por_disciplina %}
+{% if item.em_risco %}
+<div class="alerta-risco">
+  <i class="fa-solid fa-triangle-exclamation"></i>
+  <div>
+    <strong>Atenção! Você está em risco de reprovação por falta.</strong>
+    Frequência abaixo de 75% em uma ou mais disciplinas. O mínimo exigido é 75%.
+  </div>
+</div>
+{% break %}
+{% endif %}
+{% endfor %}
+
+<!-- Stats gerais -->
+{% if frequencia_por_disciplina %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-card__icon stat-card__icon--blue">
+      <i class="fa-solid fa-book-open"></i>
+    </div>
+    <div>
+      <div class="stat-card__val">{{ frequencia_por_disciplina|length }}</div>
+      <div class="stat-card__lbl">Disciplinas</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__icon stat-card__icon--green">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+    <div>
+      <div class="stat-card__val" id="total-presencas">—</div>
+      <div class="stat-card__lbl">Total de presenças</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__icon stat-card__icon--red">
+      <i class="fa-solid fa-circle-xmark"></i>
+    </div>
+    <div>
+      <div class="stat-card__val" id="total-faltas">—</div>
+      <div class="stat-card__lbl">Total de faltas</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__icon stat-card__icon--yellow">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+    </div>
+    <div>
+      <div class="stat-card__val" id="total-risco">—</div>
+      <div class="stat-card__lbl">Em risco</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabela de frequência -->
+<div class="hist-card">
+  <div class="hist-card__head">
+    <span>Disciplina</span>
+    <span style="text-align:center;" class="col-total">Aulas</span>
+    <span style="text-align:center;">Presenças</span>
+    <span style="text-align:center;">Faltas</span>
+    <span class="col-pct">% Presença</span>
+  </div>
+
+  {% for item in frequencia_por_disciplina %}
+  <div class="hist-row {% if item.em_risco %}hist-row--risco{% endif %}"
+       data-total="{{ item.total }}"
+       data-presencas="{{ item.presencas }}"
+       data-faltas="{{ item.faltas }}">
+
+    <div class="hist-row__date" style="gap:.5rem; font-size:.88rem;">
+      <i class="fa-solid fa-book" style="color:var(--accent-violet);"></i>
+      {{ item.disciplina.nome }}
+      {% if item.em_risco %}
+      <span class="badge-hoje" style="background:rgba(251,113,133,.15);color:#fb7185;border-color:rgba(251,113,133,.28);">
+        <i class="fa-solid fa-triangle-exclamation"></i> Risco
+      </span>
+      {% endif %}
+    </div>
+
+    <div class="hist-row__num hist-row__num--total">{{ item.total }}</div>
+    <div class="hist-row__num hist-row__num--present">{{ item.presencas }}</div>
+    <div class="hist-row__num hist-row__num--absent">{{ item.faltas }}</div>
+
+    <div class="pct-wrap">
+      {% if item.percentual is not None %}
+      <div class="pct-bar">
+        <div class="pct-bar__fill"
+             style="width:{{ item.percentual }}%;
+                    background:{% if item.em_risco %}var(--accent-rose,#fb7185){% else %}var(--accent-emerald){% endif %};">
+        </div>
+      </div>
+      <span class="pct-val"
+            style="{% if item.em_risco %}color:#fb7185;{% endif %}">
+        {{ item.percentual|floatformat:0 }}%
+      </span>
+      {% else %}
+      <span class="pct-val" style="color:var(--text-muted);">—</span>
+      {% endif %}
+    </div>
+
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty-state">
+  <i class="fa-solid fa-calendar-xmark"></i>
+  <p>Nenhum registro de frequência encontrado ainda.</p>
+</div>
+{% endif %}
+</div>{# /pagina-conteudo #}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var totalPresencas = 0;
+  var totalFaltas    = 0;
+  var totalRisco     = 0;
+
+  document.querySelectorAll('.hist-row[data-presencas]').forEach(function (row) {
+    var presencas = parseInt(row.dataset.presencas, 10) || 0;
+    var faltas    = parseInt(row.dataset.faltas,    10) || 0;
+    var total     = parseInt(row.dataset.total,     10) || 0;
+
+    totalPresencas += presencas;
+    totalFaltas    += faltas;
+
+    var pct = total > 0 ? Math.round((presencas / total) * 100) : null;
+    if (pct !== null && pct < 75) { totalRisco++; }
+  });
+
+  var elP = document.getElementById('total-presencas');
+  var elF = document.getElementById('total-faltas');
+  var elR = document.getElementById('total-risco');
+  if (elP) elP.textContent = totalPresencas;
+  if (elF) elF.textContent = totalFaltas;
+  if (elR) elR.textContent = totalRisco;
+});
+</script>
+{% endblock %}

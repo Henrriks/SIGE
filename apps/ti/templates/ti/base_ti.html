@@ -1,0 +1,468 @@
+{% extends "core/base.html" %}
+{% load static custom_tags ti_tags %}
+
+{# Layout da área de TI Expandido v7.3: Menu 8 Áreas (4x2) #}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/ti_responsivo.css' %}">
+{% block ti_extra_css %}{% endblock %}
+<style>
+  :root {
+    --nav-bg: var(--bg-surface);
+    --nav-border: var(--border-subtle);
+    
+    /* Paleta estendida para 8 áreas */
+    --icon-ops: var(--accent-cyan);
+    --icon-sec: #ef4444;
+    --icon-infra: var(--accent-amber);
+    --icon-data: #818cf8;
+    --icon-cfg: #2dd4bf;
+    --icon-sup: #60a5fa;
+    --icon-est: #ff0080;
+    --icon-gov: #fbbf24; /* Governance Gold */
+    
+    /* Cores individuais mantidas conforme pedido anterior */
+    --icon-vga: var(--accent-cyan);
+    --icon-apm: #f472b6;
+    --icon-obs: #a855f7;
+    --icon-wrk: #fb923c;
+    --icon-soc: #34d399;
+    --icon-iam: #ef4444;
+    --icon-vlt: #facc15;
+    --icon-hub: var(--accent-amber);
+    --icon-ccd: #38bdf8;
+    --icon-dns: #c084fc;
+    --icon-cfr: #818cf8;
+    --icon-db: #4ade80;
+    --icon-dr: #fb7185;
+    --icon-flg: #2dd4bf;
+    --icon-prm: #fcd34d;
+    --icon-com: #94a3b8;
+    --icon-tkt: #60a5fa;
+    --icon-avs: #f87171;
+    --icon-rbk: #4ade80;
+    --icon-ia: #ff0080;
+    --icon-fin: #10b981;
+    --icon-api: #8b5cf6;
+    --icon-aud: #fbbf24;
+    --icon-lgpd: #f97316;
+    --icon-pol: #06b6d4;
+  }
+
+  .ti-nav-wrapper {
+    padding: 1.5rem 2rem;
+    background: var(--bg-base);
+  }
+
+  .ti-nav-grid {
+    display: grid;
+    /* Força 4 colunas como layout padrão */
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.2rem;
+  }
+
+  .ti-nav-group {
+    background: var(--nav-bg);
+    border: 1px solid var(--nav-border);
+    border-radius: 18px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-height: 180px; /* Mantém altura consistente */
+  }
+
+  .ti-group-header {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 5px 12px 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 5px;
+  }
+
+  .ti-nav-group a {
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 10px;
+    color: var(--text-secondary);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .ti-nav-group a i { 
+    font-size: 1rem; 
+    width: 24px; 
+    display: flex;
+    justify-content: center;
+    transition: transform 0.3s;
+  }
+
+  .ti-nav-group a:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    transform: translateX(3px);
+  }
+
+  .ti-nav-group a:hover i { transform: scale(1.25); filter: brightness(1.2); }
+
+  .ti-nav-group a.ativo {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-sm);
+  }
+
+  @media (max-width: 1100px) {
+    .ti-nav-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 650px) {
+    .ti-nav-grid { grid-template-columns: 1fr; }
+    .ti-nav-wrapper { padding: 1rem; }
+  }
+
+  /* ⚡ ANIMAÇÕES LIVE */
+  .update-pulse { animation: pulse-border 1.5s ease-out; }
+  @keyframes pulse-border {
+    0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(34, 211, 238, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+  }
+  .value-up { color: #10b981 !important; transition: color 0.3s; }
+  .value-down { color: #ef4444 !important; transition: color 0.3s; }
+
+  /* Toast notification SOC GLOBAL */
+  .soc-toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; max-width: 400px; pointer-events: none; }
+  .soc-toast { background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); color: white; padding: 14px 18px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.4); animation: toastIn 0.35s ease-out; display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+  .soc-toast.toast-success { border-left: 4px solid var(--accent-emerald); }
+  .soc-toast.toast-danger { border-left: 4px solid var(--accent-ruby); }
+  .soc-toast.toast-info { border-left: 4px solid var(--accent-cyan); }
+  .soc-toast.toast-warn { border-left: 4px solid var(--accent-amber); }
+  .soc-toast.toast-out { animation: toastOut 0.3s ease-in forwards; }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(30px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(30px); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="soc-toast-container" id="soc-toasts"></div>
+{% if request.user|pode_menu_ti %}
+<div class="ti-nav-wrapper">
+  <nav class="ti-nav-grid" aria-label="SIGE Mission Control">
+    
+    {# ── 1. OPERAÇÕES ── #}
+    <div class="ti-nav-group">
+      <div class="ti-group-header"><i class="fa-solid fa-desktop" style="color: var(--icon-ops);"></i> OPERAÇÕES</div>
+      <a href="{% url 'ti:painel' %}" class="{% if request.resolver_match.url_name == 'painel' %}ativo{% endif %}">
+        <i class="fa-solid fa-gauge-high" style="color: var(--icon-vga);"></i> Visão Geral
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'apm' %}" class="{% if 'apm' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-chart-line" style="color: var(--icon-apm);"></i> Métricas APM
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'logs' %}" class="{% if 'logs' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-list-ul" style="color: var(--icon-obs);"></i> Central de Logs
+      </a>
+    </div>
+
+    {# ── 2. SEGURANÇA ── #}
+    <div class="ti-nav-group">
+      <div class="ti-group-header"><i class="fa-solid fa-lock" style="color: var(--icon-sec);"></i> SEGURANÇA</div>
+      <a href="{% url 'ti:soc' %}" class="{% if request.resolver_match.url_name == 'soc' %}ativo{% endif %}">
+        <i class="fa-solid fa-shield-halved" style="color: var(--icon-soc);"></i> Defesa SOC
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'waf' %}" class="{% if 'waf' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-shield-virus" style="color: var(--icon-ccd);"></i> Firewall WAF
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'honey' %}" class="{% if 'honey' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-shrimp" style="color: var(--icon-avs);"></i> Honey-Tokens
+      </a>
+    </div>
+
+    {# ── 3. INFRAESTRUTURA ── #}
+    <div class="ti-nav-group">
+      <div class="ti-group-header"><i class="fa-solid fa-server" style="color: var(--icon-infra);"></i> INFRAESTRUTURA</div>
+      <a href="{% url 'ti:infraestrutura' %}" class="{% if request.resolver_match.url_name == 'infraestrutura' %}ativo{% endif %}">
+        <i class="fa-solid fa-hubspot" style="color: var(--icon-hub);"></i> Hub de Serviços
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'cicd' %}" class="{% if 'cicd' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-rocket" style="color: var(--icon-ccd);"></i> Pipeline CI/CD
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'dns' %}" class="{% if 'dns' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-globe" style="color: var(--icon-dns);"></i> DNS & SSL
+      </a>
+    </div>
+
+    {# ── 4. COMPLIANCE (NOVA ÁREA) ── #}
+    <div class="ti-nav-group">
+      <div class="ti-group-header"><i class="fa-solid fa-stamp" style="color: var(--icon-gov);"></i> COMPLIANCE</div>
+      <a href="{% url 'ti:central_auditoria' %}" class="{% if request.resolver_match.url_name == 'central_auditoria' %}ativo{% endif %}">
+        <i class="fa-solid fa-fingerprint" style="color: var(--icon-aud);"></i> Auditoria
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'lgpd' %}" class="{% if 'lgpd' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-user-lock" style="color: var(--icon-lgpd);"></i> LGPD Shield
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'pii' %}" class="{% if 'pii' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-magnifying-glass-chart" style="color: var(--icon-pol);"></i> PII Radar
+      </a>
+    </div>
+
+    {# ── 5. DADOS & BACKUP ── #}
+    <div class="ti-nav-group">
+      <div class="ti-group-header"><i class="fa-solid fa-database" style="color: var(--icon-data);"></i> DADOS</div>
+      <a href="{% url 'ti:gestao_backups' %}" class="{% if request.resolver_match.url_name == 'gestao_backups' %}ativo{% endif %}">
+        <i class="fa-solid fa-vault" style="color: var(--icon-cfr);"></i> Snapshots
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'vault' %}" class="{% if 'vault' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-key" style="color: var(--icon-vlt);"></i> Secret Vault
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'database' %}" class="{% if 'database' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-database" style="color: var(--icon-db);"></i> Gestão DB
+      </a>
+    </div>
+
+    {# ── 6. CONFIGURAÇÃO ── #}
+    <div class="ti-nav-group">
+      <div class="ti-group-header"><i class="fa-solid fa-gears" style="color: var(--icon-cfg);"></i> CONFIG</div>
+      <a href="{% url 'ti:gestao_flags' %}" class="{% if 'flag' in request.resolver_match.url_name %}ativo{% endif %}">
+        <i class="fa-solid fa-toggle-on" style="color: var(--icon-flg);"></i> Feature Flags
+      </a>
+      <a href="{% url 'ti:gestao_parametros' %}" class="{% if request.resolver_match.url_name == 'gestao_parametros' %}ativo{% endif %}">
+        <i class="fa-solid fa-sliders" style="color: var(--icon-prm);"></i> Parâmetros
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'comunicacoes' %}" class="{% if 'comunicacoes' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-envelope-open-text" style="color: var(--icon-com);"></i> Mensageria
+      </a>
+    </div>
+
+    {# ── 7. SUPORTE ── #}
+    <div class="ti-nav-group">
+      <div class="ti-group-header"><i class="fa-solid fa-circle-question" style="color: var(--icon-sup);"></i> SUPORTE</div>
+      <a href="{% url 'ti:gestao_bugs' %}" class="{% if request.resolver_match.url_name == 'gestao_bugs' %}ativo{% endif %}">
+        <i class="fa-solid fa-ticket" style="color: var(--icon-tkt);"></i> Chamados SLA
+      </a>
+      <a href="{% url 'ti:gestao_avisos' %}" class="{% if request.resolver_match.url_name == 'gestao_avisos' %}ativo{% endif %}">
+        <i class="fa-solid fa-bullhorn" style="color: var(--icon-avs);"></i> Avisos Globais
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'runbooks' %}" class="{% if 'runbooks' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-book-medical" style="color: var(--icon-rbk);"></i> Guia Runbooks
+      </a>
+    </div>
+
+    {# ── 8. ESTRATÉGICO ── #}
+    <div class="ti-nav-group">
+      <div class="ti-group-header"><i class="fa-solid fa-brain" style="color: var(--icon-est);"></i> ESTRATÉGICO</div>
+      <a href="{% url 'ti:placeholder_modulo' 'ia' %}" class="{% if 'ia' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-robot" style="color: var(--icon-ia);"></i> IA & Automação
+      </a>
+      <a href="{% url 'ti:placeholder_modulo' 'finops' %}" class="{% if 'finops' in request.path %}ativo{% endif %}">
+        <i class="fa-solid fa-coins" style="color: var(--icon-fin);"></i> FinOps Custos
+      </a>
+      <a href="{% url 'ti:api_docs' %}" class="{% if request.resolver_match.url_name == 'api_docs' %}ativo{% endif %}">
+        <i class="fa-solid fa-code" style="color: var(--icon-api);"></i> Documentação API
+      </a>
+    </div>
+
+  </nav>
+</div>
+{% endif %}
+
+{% block ti_content %}{% endblock %}
+
+<script>
+  // SIGE Apex - Universal Live Monitoring Engine
+  async function refreshTIMetrics() {
+    try {
+      const response = await fetch("{% url 'ti:api_metrics' %}");
+      const data = await response.json();
+      
+      // 1. Atualizar Recursos (CPU/RAM)
+      updateValue('live-cpu', data.recursos.cpu_percent + '%');
+      updateValue('live-ram', data.recursos.ram_percent + '%');
+      
+      // 2. Atualizar Semáforo de Saúde
+      if (data.health) {
+        data.health.forEach((svc, index) => {
+          const dot = document.getElementById(`health-dot-${index}`);
+          if (dot) {
+            dot.className = `health-dot dot-${svc.status}`;
+          }
+          const info = document.getElementById(`health-info-${index}`);
+          if (info) {
+            info.innerText = svc.info;
+          }
+        });
+      }
+
+      // 3. Atualizar Alertas SOC
+      updateValue('live-waf-blocks', data.waf.bloqueios_hoje);
+      
+      // 4. Update Time
+      const timeEl = document.getElementById('live-clock');
+      if (timeEl) timeEl.innerText = data.agora;
+
+      // Despachar evento para que templates específicos (como o painel) saibam que os dados mudaram
+      window.dispatchEvent(new CustomEvent('tiMetricsUpdated', { detail: data }));
+
+    } catch (error) {
+      console.error("Erro ao sincronizar métricas de TI:", error);
+    }
+  }
+
+  function updateValue(id, newValue) {
+    const el = document.getElementById(id);
+    if (el && el.innerText !== newValue.toString()) {
+      el.classList.add('update-pulse');
+      el.innerText = newValue;
+      setTimeout(() => el.classList.remove('update-pulse'), 1500);
+    }
+  }
+
+  // Iniciar monitoramento instantâneo
+  refreshTIMetrics();
+  setInterval(refreshTIMetrics, 2000);
+
+  // ─── Toast Global ─────────────────────────────────────────────────────────
+  function socToast(msg, tipo = 'info') {
+    const container = document.getElementById('soc-toasts');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `soc-toast toast-${tipo}`;
+    toast.innerHTML = msg;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.classList.add('toast-out');
+      setTimeout(() => toast.remove(), 300);
+    }, 5000);
+  }
+  window.socToast = socToast; // Exporta para o escopo global
+
+  function escapeHtml(text) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return String(text).replace(/[&<>"']/g, m => map[m]);
+  }
+
+  // ─── WebSocket Global ──────────────────────────────────────────────────────
+  class GlobalSOCWebSocket {
+    constructor() {
+      this.socket = null;
+      this.reconnectAttempts = 0;
+      this.maxReconnect = 15;
+      this.reconnectDelay = 3000;
+      this.connecting = false;
+      this.connect();
+    }
+
+    connect() {
+      if (this.connecting) return;
+      this.connecting = true;
+      this.setStatus('connecting');
+
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const url = `${proto}//${location.host}/ws/ti/`;
+
+      try {
+        this.socket = new WebSocket(url);
+
+        this.socket.onopen = () => {
+          this.reconnectAttempts = 0;
+          this.connecting = false;
+          this.setStatus('connected');
+          // Silencioso se re-conectar no painel, avisa se precisar.
+        };
+
+        this.socket.onmessage = (e) => {
+          const data = JSON.parse(e.data);
+          this.handleEvent(data);
+        };
+
+        this.socket.onerror = () => { this.connecting = false; };
+
+        this.socket.onclose = () => {
+          this.connecting = false;
+          this.setStatus('disconnected');
+          this.tryReconnect();
+        };
+      } catch (err) {
+        this.connecting = false;
+        this.setStatus('disconnected');
+        this.tryReconnect();
+      }
+    }
+
+    tryReconnect() {
+      if (this.reconnectAttempts < this.maxReconnect) {
+        this.reconnectAttempts++;
+        setTimeout(() => this.connect(), this.reconnectDelay);
+      }
+    }
+
+    setStatus(state) {
+      // Dispara um CustomEvent para as views (como o soc.html) poderem atualizar seus badges.
+      window.dispatchEvent(new CustomEvent('socWsStatus', { detail: { state } }));
+    }
+
+    handleEvent(data) {
+      // Sempre solta toasts baseados no evento
+      switch (data.tipo) {
+        case 'novo_login':
+          socToast(`<i class="fa-solid fa-right-to-bracket"></i> <strong>${escapeHtml(data.usuario)}</strong> logou de ${escapeHtml(data.ip)}`, 'info');
+          this.playBeep(800);
+          break;
+        case 'blacklist_update':
+          if (data.acao === 'bloqueado') {
+            this.playBeep(400);
+          }
+          break;
+        case 'novo_erro':
+          socToast(`<i class="fa-solid fa-triangle-exclamation"></i> ${data.mensagem}`, 'danger');
+          this.playBeep(300);
+          break;
+        case 'alerta_seguranca':
+          socToast(`<i class="fa-solid fa-shield-virus"></i> ${data.mensagem}`, 'danger');
+          this.playBeep(300);
+          break;
+      }
+      
+      // Dispara evento pro dom se alguma página específica quiser fazer append no seu proprio DOM (ex: soc.html ou painel.html)
+      window.dispatchEvent(new CustomEvent('socWsMessage', { detail: data }));
+    }
+
+    playBeep(freq) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = freq;
+        osc.type = 'sine';
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.12);
+      } catch (e) {}
+    }
+  }
+
+  // Instancia globalmente
+  document.addEventListener('DOMContentLoaded', () => {
+    window.globalSocWS = new GlobalSOCWebSocket();
+  });
+</script>
+{% endblock %}

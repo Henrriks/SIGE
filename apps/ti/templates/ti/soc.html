@@ -1,0 +1,426 @@
+{% extends "ti/base_ti.html" %}
+{% load static %}
+
+{% block title %}Área de TI · SOC v7.3 — Tempo Real{% endblock %}
+
+{% block ti_extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/painel_de_superusuario.css' %}">
+<style>
+  .header-painel { padding: 0 2rem; margin-top: 20px; }
+  .conteudo-geral { padding: 0 2rem; margin-top: 10px; display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+  
+  .soc-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 25px; margin-bottom: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+  
+  .error-item { display: flex; gap: 15px; padding: 15px; border-bottom: 1px solid var(--border-subtle); transition: 0.2s; position: relative; }
+  .error-item:last-child { border-bottom: none; }
+  .error-item.resolvido { opacity: 0.4; filter: grayscale(1); }
+  
+  .ip-tag { font-family: monospace; font-size: 0.75rem; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 6px; color: var(--accent-cyan); font-weight: 700; cursor: pointer; border: 1px solid transparent; }
+  .ip-tag:hover { border-color: var(--accent-cyan); }
+  
+  .btn-mini { padding: 5px 10px; border-radius: 6px; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; border: none; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; }
+  .btn-danger { background: var(--accent-ruby); color: white; }
+  .btn-warning { background: var(--accent-amber); color: black; }
+  .btn-success { background: var(--accent-emerald); color: black; }
+
+  .login-node { display: flex; align-items: center; gap: 12px; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.03); margin-bottom: 10px; border: 1px solid transparent; transition: all 0.3s ease; }
+  .login-node:hover { border-color: rgba(255,255,255,0.1); }
+  .login-node.login-new { animation: loginPulse 0.6s ease-out; border-color: rgba(34, 211, 238, 0.3); background: rgba(34, 211, 238, 0.05); }
+  .avatar-mini { width: 32px; height: 32px; border-radius: 50%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 0.8rem; border: 1px solid var(--border-subtle); }
+
+  .stack-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; align-items:center; justify-content:center; backdrop-filter: blur(8px); }
+  .stack-content { background: var(--bg-surface); width: 90%; max-width: 900px; max-height: 85vh; border-radius: 20px; border: 1px solid var(--border-mid); overflow: hidden; display: flex; flex-direction: column; }
+  .stack-body { padding: 20px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: #10b981; background: #000; line-height: 1.5; flex: 1; }
+
+  /* Status WebSocket */
+  .ws-status { display: flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 14px; border-radius: 10px; border: 1px solid var(--border-subtle); background: var(--bg-elevated); }
+  .ws-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .ws-dot.connected { background: var(--accent-emerald); box-shadow: 0 0 8px var(--accent-emerald); animation: wsPulse 2s infinite; }
+  .ws-dot.disconnected { background: var(--accent-ruby); }
+  .ws-dot.connecting { background: var(--accent-amber); animation: wsPulse 0.5s infinite; }
+
+  /* Blacklist item com animação */
+  .blacklist-item { padding: 10px 0; border-bottom: 1px solid var(--border-subtle); transition: all 0.4s ease; }
+  .blacklist-item.item-new { animation: itemSlideIn 0.5s ease-out; background: rgba(248, 113, 113, 0.05); }
+  .blacklist-item.item-removing { animation: itemSlideOut 0.4s ease-in forwards; }
+
+  @keyframes itemSlideOut {
+    from { opacity: 1; transform: translateX(0); max-height: 200px; }
+    to { opacity: 0; transform: translateX(-20px); max-height: 0; padding: 0; margin: 0; border: none; }
+  }
+</style>
+{% endblock %}
+
+{% block ti_content %}
+<header class="header-painel">
+  <div class="header-esquerda">
+    <span class="header-label">SEGURANÇA E DEFESA · v7.3 · LIVE</span>
+    <h1>Security <span class="nome-destaque">Operations Center</span></h1>
+  </div>
+  <div class="header-acoes" style="display: flex; align-items: center; gap: 12px;">
+     <div class="ws-status" id="ws-status-badge">
+        <span class="ws-dot connecting" id="ws-dot"></span>
+        <span id="ws-label">Conectando…</span>
+     </div>
+     <button class="btn-sige-secundario" onclick="location.reload()"><i class="fa-solid fa-rotate"></i> Refresh SOC</button>
+  </div>
+</header>
+
+<div class="conteudo-geral">
+  <div class="coluna-esquerda">
+    
+    {# 🔐 MONITOR DE LOGINS EM TEMPO REAL #}
+    <div class="soc-card" style="border-top: 3px solid var(--accent-cyan);">
+       <h3 class="hub-title"><i class="fa-solid fa-right-to-bracket" style="color: var(--accent-cyan);"></i> Login Intelligence (Tempo Real) <span id="login-count-badge" style="font-size: 0.6rem; background: var(--accent-cyan); color: black; padding: 2px 8px; border-radius: 8px; margin-left: 8px;">{{ logins_recentes|length }}</span></h3>
+       <div id="login-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+          {% for login in logins_recentes %}
+          <div class="login-node" data-ip="{{ login.ip_endereco }}">
+             <div class="avatar-mini"><i class="fa-solid fa-user"></i></div>
+             <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                   <strong style="font-size: 0.8rem;">{{ login.usuario|default:"Anônimo" }}</strong>
+                   <span style="font-size: 0.6rem; color: var(--text-muted);">{{ login.data_evento|timesince }}</span>
+                </div>
+                <div style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+                   <span class="ip-tag" onclick="promptBlock('{{ login.ip_endereco }}')">{{ login.ip_endereco }}</span>
+                   <i class="fa-solid fa-shield" style="font-size: 0.7rem; color: var(--accent-emerald);"></i>
+                </div>
+             </div>
+          </div>
+          {% endfor %}
+       </div>
+    </div>
+
+    {# 🚨 GESTÃO DE INCIDENTES #}
+    <div class="soc-card" style="border-top: 3px solid var(--accent-ruby);">
+       <h3 class="hub-title" style="color: var(--accent-ruby);"><i class="fa-solid fa-bug"></i> Incidentes de Runtime (Server)</h3>
+       <div class="error-list">
+          {% for erro in erros_recentes %}
+          <div class="error-item {% if erro.resolvido %}resolvido{% endif %}">
+             <div class="avatar-mini" style="background: rgba(248, 113, 113, 0.1); color: var(--accent-ruby); border-color: rgba(248, 113, 113, 0.2);">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+             </div>
+             <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between;">
+                   <h4 style="font-size: 0.85rem; margin: 0; font-weight: 800;">
+                      {{ erro.tipo_excecao }}
+                      {% if erro.contador > 1 %}
+                        <span class="badge" style="background: var(--accent-ruby); font-size: 0.6rem; padding: 2px 6px; margin-left: 5px;">{{ erro.contador }}x</span>
+                      {% endif %}
+                   </h4>
+                   <span style="font-size: 0.65rem; color: var(--text-muted);">{{ erro.ultima_ocorrencia|date:"H:i" }}</span>
+                </div>
+                <p style="margin: 5px 0; font-size: 0.75rem; color: var(--text-secondary);">{{ erro.mensagem|truncatechars:150 }}</p>
+                <div style="display: flex; gap: 10px; margin-top: 10px; align-items: center;">
+                   <span class="ip-tag" onclick="promptBlock('{{ erro.ip_endereco }}')">{{ erro.ip_endereco }}</span>
+                   <button class="btn-mini btn-sige-secundario" onclick="verStack('{{ erro.id }}')"><i class="fa-solid fa-code"></i> Stack</button>
+                   {% if not erro.resolvido %}
+                   <a href="{% url 'ti:resolver_erro' erro.id %}" class="btn-mini btn-success"><i class="fa-solid fa-check"></i> Resolver</a>
+                   {% endif %}
+                </div>
+             </div>
+             <div id="stack-data-{{ erro.id }}" style="display:none;">{{ erro.traceback }}</div>
+          </div>
+          {% endfor %}
+       </div>
+    </div>
+
+    {# 🔎 AUDITORIA GERAL #}
+    <div class="soc-card">
+       <h3 class="hub-title"><i class="fa-solid fa-fingerprint"></i> Auditoria de Governança</h3>
+       <table class="sige-table" style="font-size: 0.75rem;">
+          <thead><tr><th>User</th><th>Ação</th><th>IP</th><th>Data</th></tr></thead>
+          <tbody>
+             {% for log in logs_auditoria %}
+             <tr>
+                <td><strong>{{ log.usuario }}</strong></td>
+                <td>{{ log.descricao|default:log.path|truncatechars:40 }}</td>
+                <td><span class="ip-tag" onclick="promptBlock('{{ log.ip_endereco }}')">{{ log.ip_endereco }}</span></td>
+                <td style="color: var(--text-muted);">{{ log.data_evento|date:"H:i" }}</td>
+             </tr>
+             {% endfor %}
+          </tbody>
+       </table>
+    </div>
+  </div>
+
+  {# 🧱 SIDEBAR DE DEFESA #}
+  <aside class="coluna-direita">
+     
+     {# BLACKLIST ATIVA — Atualizada em tempo real #}
+     <div class="soc-card" style="border-top: 3px solid var(--accent-ruby);">
+        <h3 class="hub-title"><i class="fa-solid fa-user-slash"></i> Blacklist Ativa <span id="blacklist-count-badge" style="font-size: 0.6rem; background: var(--accent-ruby); color: white; padding: 2px 8px; border-radius: 8px; margin-left: 8px;">{{ blacklist|length }}</span></h3>
+        <div id="blacklist-container">
+        {% for b in blacklist %}
+        <div class="blacklist-item" id="bl-item-{{ b.id }}" data-ip="{{ b.ip_endereco }}">
+           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <strong style="font-size: 0.75rem; color: var(--accent-ruby);">{{ b.ip_endereco }}</strong>
+              <button onclick="desbloquearIP({{ b.id }}, '{{ b.ip_endereco }}')" title="Desbloquear" style="background: transparent; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; padding: 4px;"><i class="fa-solid fa-lock-open"></i></button>
+           </div>
+           <p style="margin: 0; font-size: 0.65rem; color: var(--text-muted);">{{ b.motivo|truncatechars:40 }}</p>
+           {% if b.expira_em %}<span style="font-size: 0.55rem; color: var(--accent-amber);">Expira em {{ b.expira_em|timeuntil }}</span>{% endif %}
+        </div>
+        {% empty %}
+        <p id="blacklist-vazio" style="font-size: 0.7rem; opacity: 0.5; text-align: center; padding: 20px;">Nenhum IP bloqueado.</p>
+        {% endfor %}
+        </div>
+     </div>
+
+     <div class="soc-card">
+        <h3 class="hub-title"><i class="fa-solid fa-shield-halved"></i> Firewall Status</h3>
+        <div class="metric-item" style="padding: 12px 0;">
+           <span style="color: var(--text-muted); font-size: 0.75rem;">Status Atual</span>
+           <span class="badge status-active" style="display: flex; align-items: center; gap: 5px;">
+              <span class="system-pulse" style="width: 6px; height: 6px;"></span> PROTEGIDO
+           </span>
+        </div>
+        <div class="metric-item" style="padding: 12px 0;">
+           <span style="color: var(--text-muted); font-size: 0.75rem;">Filtro de IPs</span>
+           <strong style="color: var(--accent-cyan); font-size: 0.75rem;">ATIVO</strong>
+        </div>
+        <div class="metric-item" style="padding: 12px 0;">
+           <span style="color: var(--text-muted); font-size: 0.75rem;">WebSocket</span>
+           <strong id="ws-firewall-label" style="color: var(--accent-amber); font-size: 0.75rem;">CONECTANDO</strong>
+        </div>
+        <div class="metric-item" style="padding: 12px 0; border-bottom: none;">
+           <span style="color: var(--text-muted); font-size: 0.75rem;">Rate Limit</span>
+           <span style="background: var(--bg-elevated); padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; border: 1px solid var(--border-subtle);">100 r/m</span>
+        </div>
+     </div>
+  </aside>
+</div>
+
+{# MODAL DE BLOQUEIO — Agora usa AJAX #}
+<div id="modal-block" class="stack-modal" onclick="fecharBlock()">
+  <div class="stack-content" style="max-width: 400px;" onclick="event.stopPropagation()">
+     <div style="padding: 20px; background: var(--bg-elevated); border-bottom: 1px solid var(--border-subtle);">
+        <h3 style="margin: 0; color: var(--accent-ruby);"><i class="fa-solid fa-hand"></i> Bloquear Endereço IP</h3>
+     </div>
+     <div style="padding: 25px; display: flex; flex-direction: column; gap: 15px;">
+        <div>
+           <label style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">IP Selecionado</label>
+           <input type="text" id="target-ip" readonly style="width:100%; background:var(--bg-base); border:1px solid var(--border-subtle); padding:10px; border-radius:8px; color:var(--accent-ruby); font-weight: 800; font-family: monospace;">
+        </div>
+        <div>
+           <label style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Tipo de Bloqueio</label>
+           <select id="block-tipo" style="width:100%; background:var(--bg-base); border:1px solid var(--border-subtle); padding:10px; border-radius:8px; color:white;">
+              <option value="TIMEOUT">TIMEOUT (2 Horas)</option>
+              <option value="PERMANENTE">PERMANENTE (Blacklist)</option>
+           </select>
+        </div>
+        <div>
+           <label style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase;">Motivo</label>
+           <input type="text" id="block-motivo" placeholder="Ex: Brute Force detected" style="width:100%; background:var(--bg-base); border:1px solid var(--border-subtle); padding:10px; border-radius:8px; color:white;">
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+           <button type="button" class="btn-mini btn-sige-secundario" onclick="fecharBlock()" style="padding: 10px 20px;">Cancelar</button>
+           <button type="button" class="btn-mini btn-danger" id="btn-confirmar-block" onclick="executarBloqueio()" style="padding: 10px 20px;">Confirmar Bloqueio</button>
+        </div>
+     </div>
+  </div>
+</div>
+
+{# MODAL DE STACK #}
+<div id="modal-stack" class="stack-modal" onclick="fecharStack()">
+  <div class="stack-content" onclick="event.stopPropagation()">
+     <div style="padding: 15px 25px; background: var(--bg-elevated); display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle);">
+        <h3 style="margin: 0; font-size: 0.9rem;"><i class="fa-solid fa-code"></i> Runtime Stack Trace</h3>
+        <button onclick="fecharStack()" style="background:transparent; border:none; color:white; font-size: 1.5rem; cursor:pointer;">&times;</button>
+     </div>
+     <div class="stack-body" id="stack-content-body"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// SOC v7.3 — Sistema em Tempo Real (WebSocket + AJAX)
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+// ─── Modais ────────────────────────────────────────────────────────────────
+function promptBlock(ip) {
+  document.getElementById('target-ip').value = ip;
+  document.getElementById('block-motivo').value = '';
+  document.getElementById('block-tipo').value = 'TIMEOUT';
+  document.getElementById('modal-block').style.display = 'flex';
+}
+function fecharBlock() { document.getElementById('modal-block').style.display = 'none'; }
+
+function verStack(id) {
+  const data = document.getElementById('stack-data-' + id).innerText;
+  document.getElementById('stack-content-body').innerText = data;
+  document.getElementById('modal-stack').style.display = 'flex';
+}
+function fecharStack() { document.getElementById('modal-stack').style.display = 'none'; }
+
+// ─── AJAX: Bloquear IP ────────────────────────────────────────────────────
+async function executarBloqueio() {
+  const ip = document.getElementById('target-ip').value;
+  const motivo = document.getElementById('block-motivo').value || 'Bloqueio manual via SOC';
+  const tipo = document.getElementById('block-tipo').value;
+  const btn = document.getElementById('btn-confirmar-block');
+
+  if (!ip) return;
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Bloqueando...';
+
+  try {
+    const resp = await fetch("{% url 'ti:bloquear_ip' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': CSRF_TOKEN,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: JSON.stringify({ ip, motivo, tipo }),
+    });
+    const data = await resp.json();
+
+    if (data.status === 'ok') {
+      socToast(`<i class="fa-solid fa-ban"></i> IP <strong>${ip}</strong> bloqueado com sucesso.`, 'danger');
+      // O signal de post_save emite o evento WebSocket — a UI será atualizada automaticamente
+    } else if (data.status === 'whitelist') {
+      socToast(`<i class="fa-solid fa-shield"></i> ${data.mensagem}`, 'warn');
+    } else {
+      socToast(`<i class="fa-solid fa-xmark"></i> ${data.mensagem || 'Erro ao bloquear.'}`, 'danger');
+    }
+  } catch (e) {
+    socToast('<i class="fa-solid fa-xmark"></i> Erro de conexão ao bloquear IP.', 'danger');
+    console.error(e);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = 'Confirmar Bloqueio';
+  fecharBlock();
+}
+
+// ─── AJAX: Desbloquear IP ─────────────────────────────────────────────────
+async function desbloquearIP(id, ip) {
+  if (!confirm(`Desbloquear o IP ${ip}?`)) return;
+
+  try {
+    const resp = await fetch(`/ti/soc/desbloquear-ip/${id}/`, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      },
+    });
+    const data = await resp.json();
+
+    if (data.status === 'ok') {
+      socToast(`<i class="fa-solid fa-lock-open"></i> IP <strong>${ip}</strong> desbloqueado.`, 'success');
+      // O signal de post_delete emite o evento WebSocket — a UI será atualizada automaticamente
+    } else {
+      socToast('<i class="fa-solid fa-xmark"></i> Erro ao desbloquear.', 'danger');
+    }
+  } catch (e) {
+    socToast('<i class="fa-solid fa-xmark"></i> Erro de conexão ao desbloquear IP.', 'danger');
+    console.error(e);
+  }
+}
+
+// ─── Helpers de DOM ───────────────────────────────────────────────────────
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+function atualizarContadores() {
+  const loginCount = document.querySelectorAll('#login-grid .login-node').length;
+  const blCount = document.querySelectorAll('#blacklist-container .blacklist-item').length;
+  document.getElementById('login-count-badge').textContent = loginCount;
+  document.getElementById('blacklist-count-badge').textContent = blCount;
+}
+
+// ─── Eventos do WebSocket Global ──────────────────────────────────────────
+
+window.addEventListener('socWsStatus', (e) => {
+  const state = e.detail.state;
+  const dot = document.getElementById('ws-dot');
+  const label = document.getElementById('ws-label');
+  const fw = document.getElementById('ws-firewall-label');
+  dot.className = 'ws-dot ' + state;
+  if (state === 'connected') {
+    label.textContent = 'Live';
+    label.style.color = 'var(--accent-emerald)';
+    fw.textContent = 'CONECTADO';
+    fw.style.color = 'var(--accent-emerald)';
+  } else if (state === 'connecting') {
+    label.textContent = 'Conectando…';
+    label.style.color = 'var(--accent-amber)';
+    fw.textContent = 'CONECTANDO';
+    fw.style.color = 'var(--accent-amber)';
+  } else {
+    label.textContent = 'Offline';
+    label.style.color = 'var(--accent-ruby)';
+    fw.textContent = 'DESCONECTADO';
+    fw.style.color = 'var(--accent-ruby)';
+  }
+});
+
+window.addEventListener('socWsMessage', (e) => {
+  const data = e.detail;
+  if (data.tipo === 'novo_login') {
+    const grid = document.getElementById('login-grid');
+    const card = document.createElement('div');
+    card.className = 'login-node login-new';
+    card.dataset.ip = data.ip;
+    card.innerHTML = `
+      <div class="avatar-mini"><i class="fa-solid fa-user"></i></div>
+      <div style="flex: 1;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="font-size: 0.8rem;">${escapeHtml(data.usuario)}</strong>
+          <span style="font-size: 0.6rem; color: var(--text-muted);">agora</span>
+        </div>
+        <div style="margin-top: 4px; display: flex; justify-content: space-between; align-items: center;">
+          <span class="ip-tag" onclick="promptBlock('${escapeHtml(data.ip)}')">${escapeHtml(data.ip)}</span>
+          <i class="fa-solid fa-shield" style="font-size: 0.7rem; color: var(--accent-emerald);"></i>
+        </div>
+      </div>
+    `;
+    grid.insertBefore(card, grid.firstChild);
+    setTimeout(() => card.classList.remove('login-new'), 800);
+    atualizarContadores();
+  }
+  else if (data.tipo === 'blacklist_update') {
+    const container = document.getElementById('blacklist-container');
+    if (data.acao === 'bloqueado') {
+      const vazio = document.getElementById('blacklist-vazio');
+      if (vazio) vazio.remove();
+      const existente = document.getElementById(`bl-item-${data.blacklist_id}`);
+      if (existente) existente.remove();
+      const item = document.createElement('div');
+      item.className = 'blacklist-item item-new';
+      item.id = `bl-item-${data.blacklist_id}`;
+      item.dataset.ip = data.ip;
+      item.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+          <strong style="font-size: 0.75rem; color: var(--accent-ruby);">${escapeHtml(data.ip)}</strong>
+          <button onclick="desbloquearIP(${data.blacklist_id}, '${escapeHtml(data.ip)}')" title="Desbloquear" style="background: transparent; border: none; color: var(--text-muted); font-size: 0.8rem; cursor: pointer; padding: 4px;"><i class="fa-solid fa-lock-open"></i></button>
+        </div>
+        <p style="margin: 0; font-size: 0.65rem; color: var(--text-muted);">${escapeHtml(data.motivo || '')}</p>
+        ${data.expira_em ? `<span style="font-size: 0.55rem; color: var(--accent-amber);">Expira: ${escapeHtml(data.expira_em)}</span>` : ''}
+      `;
+      container.insertBefore(item, container.firstChild);
+      setTimeout(() => item.classList.remove('item-new'), 600);
+    } else if (data.acao === 'desbloqueado') {
+      let item = document.getElementById(`bl-item-${data.blacklist_id}`);
+      if (!item) item = container.querySelector(`.blacklist-item[data-ip="${data.ip}"]`);
+      if (item) {
+        item.classList.add('item-removing');
+        setTimeout(() => {
+          item.remove();
+          if (!container.querySelector('.blacklist-item')) {
+            container.innerHTML = '<p id="blacklist-vazio" style="font-size: 0.7rem; opacity: 0.5; text-align: center; padding: 20px;">Nenhum IP bloqueado.</p>';
+          }
+        }, 400);
+      }
+    }
+    atualizarContadores();
+  }
+});
+</script>
+{% endblock %}

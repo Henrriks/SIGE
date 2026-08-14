@@ -1,0 +1,1011 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load l10n %}
+
+{% block title %}Meu Painel{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/painel_dos_alunos.css' %}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .widget-colapsavel i {
+        font-size: 0.75rem;
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .collapsed .widget-colapsavel i {
+        transform: rotate(-180deg);
+    }
+
+    .btn-colapso {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s, color 0.2s, transform 0.3s;
+        flex-shrink: 0;
+        padding: 0;
+    }
+
+    .btn-colapso:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+    }
+
+    .btn-colapso i {
+        font-size: 0.75rem;
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .recolhido .btn-colapso i {
+        transform: rotate(-180deg);
+    }
+
+    /* ── Badges de Status de Leitura ── */
+    .badge-leitura {
+        font-size: 0.68rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: 20px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        white-space: nowrap;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .badge-leitura-finalizado {
+        background: rgba(52, 211, 153, 0.12);
+        color: var(--accent-emerald);
+        border-color: rgba(52, 211, 153, 0.3);
+    }
+
+    .badge-leitura-lendo {
+        background: rgba(56, 189, 248, 0.12);
+        color: var(--accent-cyan);
+        border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .badge-leitura-nao_informado {
+        background: rgba(255, 255, 255, 0.04);
+        color: var(--text-muted);
+        border-color: var(--border-subtle);
+    }
+
+    .card-devolvido:hover {
+        border-color: var(--border-mid) !important;
+    }
+
+    /* ── Mural: Badge de Novos Avisos ── */
+    .mural-badge-novo {
+        display: none;
+        background: #f43f5e;
+        color: #fff;
+        font-size: 0.58rem;
+        font-weight: 800;
+        min-width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        padding: 0 5px;
+        align-items: center;
+        justify-content: center;
+        letter-spacing: 0.03em;
+        animation: mural-badge-pulse 2.2s ease-in-out infinite;
+        flex-shrink: 0;
+    }
+
+    .mural-badge-novo.visivel {
+        display: inline-flex;
+    }
+
+    @keyframes mural-badge-pulse {
+        0%,
+        100% {
+            transform: scale(1);
+            box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5);
+        }
+
+        50% {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 5px rgba(244, 63, 94, 0);
+        }
+    }
+
+    /* ── Mural: Item marcado como NOVO ── */
+    .item-mural-novo {
+        border-left: 3px solid #f43f5e !important;
+        background: rgba(244, 63, 94, 0.04) !important;
+        position: relative;
+    }
+
+    .item-mural-novo::after {
+        content: 'NOVO';
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        font-size: 0.52rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        background: #f43f5e;
+        color: #fff;
+        padding: 1px 5px;
+        border-radius: 4px;
+        line-height: 1.6;
+    }
+
+    /* ── Avatares de Professores ── */
+    .professor-avatar-mini {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 1.5px solid var(--border-mid);
+        background: var(--bg-surface);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .professor-avatar-mini img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .professor-avatar-mini .avatar-fallback {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .disciplina-card:hover .professor-avatar-mini {
+        border-color: var(--accent-violet);
+        transform: scale(1.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<section class="painel-sige">
+
+    {# ════════════════ HEADER ════════════════ #}
+    <div class="header-painel">
+        <div class="header-esquerda">
+            <span class="header-label"><i class="fa-solid fa-graduation-cap"></i> SIGE · Painel do Aluno</span>
+            <h1>Olá, <span class="nome-destaque">{{ aluno.nome_completo|truncatewords:2 }}</span> 👋
+                {% if aluno.possui_necessidade_especial %}<i class="fa-solid fa-universal-access" style="color: var(--accent-cyan); font-size: 1.2rem; vertical-align: middle; margin-left: 10px;" title="Perfil Inclusivo Ativo"></i>{% endif %}
+                {% if aluno.ficha_medica.alergias %}<i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-ruby); font-size: 1.2rem; vertical-align: middle; margin-left: 8px;" title="Restrição de Saúde: Alergias"></i>{% endif %}
+            </h1>
+            <p class="header-sub">{{ aluno.turma.nome }} · {{ aluno.turma.get_turno_display }}</p>
+        </div>
+        <div style="display: flex; gap: 15px;">
+            {% if aluno.possui_necessidade_especial %}
+            <div class="sige-glass-card" style="display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-radius: var(--radius-lg); border: 1px solid rgba(124, 111, 255, 0.2);">
+                <div style="background: rgba(124, 111, 255, 0.2); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--accent-violet);">
+                    <i class="fa-solid fa-universal-access"></i>
+                </div>
+                <div>
+                    <p style="margin: 0; font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-violet); font-weight: 800;">PCD</p>
+                    <p style="margin: 0; font-size: 0.75rem; color: var(--text-primary); font-weight: 600;">{{ aluno.descricao_necessidade|truncatechars:25|default:"Ativo" }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if aluno.ficha_medica.alergias %}
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 18px; border-radius: var(--radius-lg); background: var(--bg-surface); border: 2px solid var(--accent-ruby); box-shadow: 0 4px 15px rgba(244, 63, 94, 0.15);">
+                <div style="background: var(--accent-ruby); width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div>
+                    <p style="margin: 0; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-ruby); font-weight: 900;">Atenção: Alergias</p>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-primary); font-weight: 800;">{{ aluno.ficha_medica.alergias|truncatechars:35 }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="header-acoes">
+            <a href="{% url 'gerar_declaracao_matricula' aluno.id %}" target="_blank"
+                class="btn-imprimir btn-declaracao">
+                <i class="fa-solid fa-file-contract"></i> Declaração
+            </a>
+            <a href="{% url 'gerar_boletim_pdf' aluno.id %}" target="_blank" class="btn-imprimir">
+                <i class="fa-solid fa-file-pdf"></i> Imprimir Boletim
+            </a>
+        </div>
+    </div>
+
+    {# Banner de Controle Parental #}
+    {% if request.controle_parental %}
+    <div class="sige-glass-card" style="margin-bottom: 25px; border-left: 4px solid var(--accent-violet); padding: 15px 25px; display: flex; align-items: center; gap: 20px; background: rgba(124, 111, 255, 0.05);">
+        <div style="background: var(--accent-violet); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+            <i class="fa-solid fa-shield-heart"></i>
+        </div>
+        <div style="flex: 1;">
+            <h4 style="margin: 0; color: var(--text-primary); font-size: 0.95rem;">Controle Parental Ativo</h4>
+            <p style="margin: 3px 0 0 0; color: var(--text-muted); font-size: 0.85rem;">
+                Seu acesso está sendo monitorado pelo seu responsável para garantir sua segurança e foco nos estudos.
+            </p>
+        </div>
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--accent-violet); background: rgba(124, 111, 255, 0.1); padding: 5px 12px; border-radius: 20px;">
+            MONITORADO
+        </div>
+    </div>
+    {% endif %}
+
+    {# ════════════════ CARDS DE RESUMO ════════════════ #}
+    <section class="cards-resumo">
+        <div class="card-info">
+            <div class="card-icon"><i class="fa-solid fa-book"></i></div>
+            <div class="card-dados">
+                <p>Disciplinas</p>
+                <h3>{{ disciplinas_com_notas|length }}</h3>
+            </div>
+        </div>
+
+        <div class="card-info">
+            <div class="card-icon"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="card-dados">
+                <p>Média Geral</p>
+                <h3>{{ media_geral|floatformat:1|default:"--" }}</h3>
+            </div>
+        </div>
+
+        <div class="card-info">
+            <div class="card-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <div class="card-dados">
+                {% if situacao_geral != "--" %}
+                <p>Situação Geral</p>
+                <h3 class="{{ situacao_classe }}">{{ situacao_geral }}</h3>
+                {% else %}
+                <p>Notas Lançadas</p>
+                <h3>{{ total_notas_lancadas }}/{{ total_notas_possiveis }}</h3>
+                {% endif %}
+            </div>
+        </div>
+        <a href="{% url 'listar_atividades_aluno' %}" class="card-info card-info-link" style="text-decoration: none;">
+            <div class="card-icon card-icon-portal"><i class="fa-solid fa-file-pen"></i></div>
+            <div class="card-dados">
+                <p>Atividades Extraclasses</p>
+                <h3 class="titulo-portal">Entregas e Provas</h3>
+            </div>
+        </a>
+
+        <a href="{% url 'meus_roteiros_aluno' %}" class="card-info card-info-link"
+            style="text-decoration: none; border-bottom: 3px solid var(--accent-violet);">
+            <div class="card-icon" style="color: var(--accent-violet); background: rgba(124, 111, 255, 0.1);"><i
+                    class="fa-solid fa-compass"></i></div>
+            <div class="card-dados">
+                <p>O que vou estudar?</p>
+                <h3 class="titulo-portal" style="color: var(--accent-violet);">Roteiro de Aulas</h3>
+            </div>
+        </a>
+
+        <a href="{% url 'listar_materiais_aluno' %}" class="card-info card-info-link"
+            style="text-decoration: none; border-bottom: 3px solid var(--accent-emerald);">
+            <div class="card-icon" style="color: var(--accent-emerald); background: rgba(52, 211, 153, 0.1);"><i
+                    class="fa-solid fa-folder-open"></i></div>
+            <div class="card-dados">
+                <p>Materiais de Aula</p>
+                <h3 class="titulo-portal" style="color: var(--accent-emerald);">Arquivos e Links</h3>
+            </div>
+        </a>
+
+        <a href="{% url 'listar_atestados_aluno' %}" class="card-info card-info-link"
+            style="text-decoration: none; border-bottom: 3px solid var(--accent-ruby);">
+            <div class="card-icon" style="color: var(--accent-ruby); background: rgba(239, 68, 68, 0.1);"><i
+                    class="fa-solid fa-hospital-user"></i></div>
+            <div class="card-dados">
+                <p>Saúde e Faltas</p>
+                <h3 class="titulo-portal" style="color: var(--accent-ruby);">Atestados Médicos</h3>
+            </div>
+        </a>
+        <a href="{% url 'frequencia_aluno' %}" class="card-info card-info-link"
+            style="text-decoration: none; border-bottom: 3px solid #f87171;">
+            <div class="card-icon card-icon-portal" style="color: #f87171;"><i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <div class="card-dados">
+                <p>Estou em dia?</p>
+                <h3 class="titulo-portal" style="color: #f87171;">Minha Frequência</h3>
+            </div>
+        </a>
+    </section>
+
+    <div class="conteudo-geral">
+
+        {# ════ COLUNA PRINCIPAL (esquerda: disciplinas + biblioteca) ════ #}
+        <div class="coluna-principal">
+
+            {# ════════════════ DISCIPLINAS E NOTAS ════════════════ #}
+            <div class="secao-disciplinas">
+                <p class="secao-titulo">
+                    <i class="fa-solid fa-book-open"></i> Minhas Disciplinas e Notas
+                </p>
+
+                <p style="font-size: 0.8rem; color: red; display: none;">Debug: Mês: {{ mes_nome }}, Disciplinas: {{ disciplinas_com_notas|length }}, Empréstimos: {{ meus_emprestimos|length }}</p>
+
+                <div class="lista-disciplinas">
+                    {% for item in disciplinas_com_notas %}
+                    <div class="disciplina-card">
+                        <div class="disciplina-header" onclick="toggleNotas(this)">
+                            <div class="disciplina-info" style="display: flex; align-items: center; gap: 12px;">
+                                <div class="professor-avatar-mini"
+                                    title="Prof. {{ item.disciplina.professor.nome_completo }}">
+                                    <img src="{{ item.disciplina.professor.get_foto_url }}"
+                                         alt="{{ item.disciplina.professor.nome_completo }}"
+                                         loading="lazy">
+                                </div>
+                                <div>
+                                    <h3 style="margin: 0; font-size: 1rem;">{{ item.disciplina.nome }} - {{ item.disciplina.professor.nome_completo|default:"Professor não informado" }}</h3>
+                                </div>
+                            </div>
+
+                            <div class="disciplina-media">
+                                <span class="label">Média</span>
+                                <span
+                                    class="valor-media {% if item.nota.media %}{% if item.nota.media >= 7 %}aprovado{% elif item.nota.media >= 5 %}recuperacao{% else %}reprovado{% endif %}{% endif %}">
+                                    {{ item.nota.media|floatformat:1|default:"--" }}
+                                </span>
+                            </div>
+
+                            <i class="fa-solid fa-chevron-down seta"></i>
+                        </div>
+
+                        <div class="disciplina-notas">
+                            <div class="nota-item">
+                                <span class="nota-label">1º Bimestre</span>
+                                <span class="nota-valor">{{ item.nota.nota1|default:"--" }}</span>
+                            </div>
+                            <div class="nota-item">
+                                <span class="nota-label">2º Bimestre</span>
+                                <span class="nota-valor">{{ item.nota.nota2|default:"--" }}</span>
+                            </div>
+                            <div class="nota-item">
+                                <span class="nota-label">3º Bimestre</span>
+                                <span class="nota-valor">{{ item.nota.nota3|default:"--" }}</span>
+                            </div>
+                            <div class="nota-item">
+                                <span class="nota-label">4º Bimestre</span>
+                                <span class="nota-valor">{{ item.nota.nota4|default:"--" }}</span>
+                            </div>
+
+                            {# Frequência #}
+                            {% if item.total_aulas > 0 %}
+                            <div class="frequencia-resumo">
+                                <div class="freq-item">
+                                    <span class="freq-label">Faltas</span>
+                                    <span class="freq-valor">{{ item.faltas }}/{{ item.total_aulas }}</span>
+                                </div>
+                                <div class="freq-barra-wrap">
+                                    <div class="freq-barra {% if item.percentual_faltas >= 25 %}critica{% elif item.percentual_faltas >= 15 %}alerta{% else %}ok{% endif %}"
+                                        data-final-width="{{ item.percentual_faltas }}" style="width: 0%"></div>
+                                </div>
+                                <span
+                                    class="freq-percentual {% if item.percentual_faltas >= 25 %}reprovado{% elif item.percentual_faltas >= 15 %}recuperacao{% else %}aprovado{% endif %}">
+                                    {{ item.percentual_faltas }}% de faltas
+                                </span>
+                            </div>
+                            {% else %}
+                            <div class="frequencia-resumo sem-registro">
+                                <span>Nenhuma chamada registrada ainda</span>
+                            </div>
+                            {% endif %}
+
+                            {# Materiais de Apoio #}
+                            {% if item.materiais_recentes %}
+                            <div class="materiais-resumo"
+                                style="margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border-mid);">
+                                <p
+                                    style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent-emerald); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                                    <i class="fa-solid fa-folder-open"></i> Materiais Recentes
+                                </p>
+                                <div class="mini-materiais-lista"
+                                    style="display: flex; flex-direction: column; gap: 6px;">
+                                    {% for mat in item.materiais_recentes %}
+                                    <a href="{% url 'acervo_biblioteca' %}" class="mini-material-link"
+                                        style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text-primary); font-size: 0.8rem; padding: 6px 10px; background: var(--bg-surface); border-radius: 8px; border: 1px solid var(--border-subtle); transition: all 0.2s;">
+                                        <span
+                                            style="width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; flex-shrink: 0; {% if mat.tipo == 'LINK' %}background: rgba(139, 92, 246, 0.1); color: var(--accent-violet);{% elif mat.tipo == 'ARQUIVO' %}background: rgba(52, 211, 153, 0.1); color: var(--accent-emerald);{% else %}background: rgba(251, 191, 36, 0.1); color: var(--accent-amber);{% endif %}">
+                                            {% if mat.tipo == 'LINK' %}<i class="fa-solid fa-link"></i>
+                                            {% elif mat.tipo == 'ARQUIVO' %}<i class="fa-solid fa-file-pdf"></i>
+                                            {% else %}<i class="fa-solid fa-book"></i>{% endif %}
+                                        </span>
+                                        <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ mat.titulo }}</span>
+                                        <i class="fa-solid fa-chevron-right"
+                                            style="margin-left: auto; font-size: 0.5rem; opacity: 0.4;"></i>
+                                    </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# ════════════════ MEUS EMPRÉSTIMOS (BIBLIOTECA) ════════════════ #}
+            <div class="secao-biblioteca" style="margin-top: 30px;">
+                <p class="secao-titulo" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span><i class="fa-solid fa-book-bookmark" style="color: var(--accent-cyan);"></i> Livros em Minha
+                        Posse</span>
+                    <a href="{% url 'acervo_biblioteca' %}" class="btn-acervo">Ver Acervo Completo</a>
+                </p>
+
+                {% if meus_emprestimos %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px;">
+                    {% for emprestado in meus_emprestimos %}
+                    <div
+                        style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; display: flex; padding: 15px; gap: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                        <img src="{{ emprestado.livro.get_capa_url }}" alt="{{ emprestado.livro.titulo }}"
+                             loading="lazy"
+                             style="width: 60px; height: 85px; object-fit: cover; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <div
+                            style="display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;">
+                            <div>
+                                <h4 style="margin: 0 0 4px 0; font-size: 0.95rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+                                    title="{{ emprestado.livro.titulo }}">{{ emprestado.livro.titulo }}</h4>
+                                <p style="margin: 0 0 8px 0; font-size: 0.75rem; color: var(--text-muted);">Autor: {{ emprestado.livro.autor|default:"Autor não informado" }}</p>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span
+                                    style="font-size: 0.7rem; font-weight: bold; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; display: inline-block; width: fit-content; {% if emprestado.status == 'RESERVA' %}background: rgba(251, 191, 36, 0.1); color: var(--accent-amber);{% elif emprestado.status == 'ATRASADO' %}background: rgba(244, 63, 94, 0.1); color: var(--accent-ruby);{% else %}background: rgba(56, 189, 248, 0.1); color: var(--accent-cyan);{% endif %}">
+                                    {% if emprestado.status == 'ATIVO' %}Em Posse
+                                    {% elif emprestado.status == 'ATRASADO' %}Atrasado!
+                                    {% elif emprestado.status == 'RESERVA' %}Reservado
+                                    {% else %}{{ emprestado.get_status_display }}{% endif %}
+                                </span>
+                                <span style="font-size: 0.75rem; color: {% if emprestado.status == 'ATRASADO' %}var(--accent-ruby){% else %}var(--text-dim){% endif %};">
+                                    {% if emprestado.status == 'RESERVA' %}Retirar até:{% else %}Devolver em:{% endif %}
+                                    <strong>{{ emprestado.data_devolucao_prevista|date:"d/m" }}</strong>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div
+                    style="background: rgba(255,255,255,0.02); border: 1px dashed var(--border-subtle); border-radius: 12px; padding: 30px; text-align: center; color: var(--text-muted);">
+                    <i class="fa-solid fa-book-open" style="font-size: 2.5rem; opacity: 0.3; margin-bottom: 10px;"></i>
+                    <h4 style="margin: 0 0 5px 0; color: var(--text-primary);">Nenhum livro com você</h4>
+                    <p style="margin: 0; font-size: 0.85rem;">Que tal explorar a biblioteca digital e reservar sua
+                        próxima leitura?</p>
+                </div>
+                {% endif %}
+
+                {# ── Livros Devolvidos ── #}
+                {% if livros_devolvidos %}
+                <p class="secao-titulo" style="display: flex; align-items: center; justify-content: space-between; margin-top: 28px;">
+                    <span><i class="fa-solid fa-book-circle-arrow-right" style="color: var(--accent-emerald);"></i> Histórico de Leituras</span>
+                    <a href="{% url 'minhas_leituras' %}" class="btn-acervo" style="font-size: 0.7rem; padding: 4px 10px;">Ver Tudo</a>
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for dev in livros_devolvidos %}
+                    <div class="card-devolvido" data-id="{{ dev.id }}"
+                        style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; display: flex; align-items: center; gap: 14px; padding: 12px 16px; transition: border-color 0.2s; overflow: hidden;">
+                        {# Capa mini #}
+                        <img src="{{ dev.livro.get_capa_url }}" alt="{{ dev.livro.titulo }}"
+                             loading="lazy"
+                             style="width: 42px; height: 60px; object-fit: cover; border-radius: 5px; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+
+                        {# Conteúdo em 2 linhas: sem sobreposição #}
+                        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px;">
+
+                            {# Linha 1: Título + Badge #}
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                <h4 style="margin: 0; font-size: 0.9rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0;"
+                                    title="{{ dev.livro.titulo }}">{{ dev.livro.titulo }}</h4>
+                                <span class="badge-leitura badge-leitura-{{ dev.status_leitura|lower }}"
+                                    id="badge-{{ dev.id }}" style="flex-shrink: 0;">
+                                    {% if dev.status_leitura == "FINALIZADO" %}<i class="fa-solid fa-circle-check"></i> Finalizado
+                                    {% elif dev.status_leitura == "LENDO" %}<i class="fa-solid fa-book-open"></i> Lendo
+                                    {% else %}<i class="fa-regular fa-clock"></i> Devolvido{% endif %}
+                                </span>
+                            </div>
+
+                            {# Linha 2: Data de devolução + Seletor (nunca se sobrepõem) #}
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                <p
+                                    style="margin: 0; font-size: 0.72rem; color: var(--text-muted); flex-shrink: 1; min-width: 0;">
+                                    <i class="fa-regular fa-calendar-check"
+                                        style="margin-right: 3px; opacity: 0.6;"></i>
+                                    Devolvido em <strong>{{ dev.data_devolucao_real|date:"d/m/Y"|default:"—" }}</strong>
+                                </p>
+                                <select class="select-leitura" data-emprestimo-id="{{ dev.id }}"
+                                    onchange="atualizarLeitura(this)"
+                                    style="font-size: 0.68rem; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--border-mid); background: var(--bg-elevated); color: var(--text-secondary); cursor: pointer; flex-shrink: 0; width: 120px;">
+                                    <option value="">— Atualizar status</option>
+                                    <option value="FINALIZADO" {% if dev.status_leitura == "FINALIZADO" %}selected{% endif %}>Finalizei a Leitura</option>
+                                    <option value="LENDO" {% if dev.status_leitura == "LENDO" %}selected{% endif %}>Estava Lendo</option>
+                                    <option value="NAO_INFORMADO" {% if dev.status_leitura == "NAO_INFORMADO" %}selected{% endif %}>Só Devolvi</option>
+                                </select>
+                            </div>
+
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+        </div>{# /coluna-principal #}
+
+        {# ════════════════ COLUNA DIREITA ════════════════ #}
+        <div class="coluna-direita">
+
+            {# Mural de Avisos (Padronizado via sige-widget) ── #}
+            <section class="sige-widget" id="widget-mural">
+                <header class="sige-widget-header" onclick="toggleWidget('widget-mural', 'mural'); marcarMuralLido()">
+                    <h3>
+                        <i class="fa-solid fa-bullhorn" style="color: var(--accent-cyan);"></i> Mural de Avisos
+                        <span class="mural-badge-novo" id="mural-badge-novo" title="Avisos novos"></span>
+                    </h3>
+                    <i class="fa-solid fa-chevron-up sige-widget-toggle"></i>
+                </header>
+
+                <div class="sige-widget-body">
+                    {% if comunicados %}
+                    <div class="lista-mural-compacta">
+                        {% for c in comunicados %}
+                        <div class="item-mural-side mural-tipo-{{ c.publico_alvo|lower }} {% if c.importancia == 'ALTA' %}urgente{% endif %}"
+                            data-com-id="{{ c.id }}">
+                            <div class="item-meta">
+                                <span class="tag-mural publico-{{ c.publico_alvo|lower }}">
+                                    {% if c.publico_alvo == 'GLOBAL' %}<i class="fa-solid fa-earth-americas"></i>
+                                    {% elif c.publico_alvo == 'ALUNOS' %}<i class="fa-solid fa-user-graduate"></i>
+                                    {% elif c.publico_alvo == 'PROFESSORES' %}<i class="fa-solid fa-person-chalkboard"></i>
+                                    {% elif c.publico_alvo == 'GESTORES' %}<i class="fa-solid fa-user-tie"></i>
+                                    {% endif %}
+                                    {{ c.get_publico_alvo_display }}
+                                </span>
+                                <span class="data">{{ c.data_publicacao|date:"d/m" }}</span>
+                            </div>
+                            <h4>{{ c.titulo }}</h4>
+                            <p>{{ c.conteudo|truncatechars:60 }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="vazio-mural">
+                        <p>Nenhum aviso no momento.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </section>
+
+            {# Gráfico de desempenho (Padronizado via sige-widget) ── #}
+            <section id="widget-desempenho" class="sige-widget">
+                <header class="sige-widget-header" onclick="toggleWidget('widget-desempenho', 'desempenho')">
+                    <h3><i class="fa-solid fa-chart-bar" style="color: var(--accent-emerald);"></i> Meu Desempenho</h3>
+                    <i class="fa-solid fa-chevron-up sige-widget-toggle"></i>
+                </header>
+                <div class="sige-widget-body">
+                    <canvas id="graficoDesempenho"></canvas>
+                </div>
+            </section>
+
+            {# Calendário (Padronizado via sige-widget) ── #}
+            {% load cache %}
+            {% cache 3600 aluno_calendar aluno.id agora.month agora.year %}
+            <section class="sige-widget" id="widget-calendario">
+                <header class="sige-widget-header" onclick="toggleWidget('widget-calendario', 'calendario')">
+                    <a href="{% url 'visualizar_calendario' %}" class="calendario-link-header"
+                        style="text-decoration: none; color: inherit; flex: 1;">
+                        <h3 style="margin: 0;">
+                            <i class="fa-solid fa-calendar-days" style="color: var(--accent-violet);"></i> {{ mes_nome }}
+                            <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 500;">{{ ano_calendario }}</span>
+                        </h3>
+                    </a>
+                    <i class="fa-solid fa-chevron-up sige-widget-toggle"></i>
+                </header>
+
+                <div class="sige-widget-body">
+                    <div class="calendario-grade" id="cal-grade">
+                        <div class="nome-dia">D</div>
+                        <div class="nome-dia">S</div>
+                        <div class="nome-dia">T</div>
+                        <div class="nome-dia">Q</div>
+                        <div class="nome-dia">Q</div>
+                        <div class="nome-dia">S</div>
+                        <div class="nome-dia">S</div>
+
+                        {% for d in calendario %}
+                        <div class="dia {% if d.vazio %}vazio{% endif %} {% if d.hoje %}atual{% endif %} tipo-{{ d.tipo|lower }}{% if d.tem_evento %} tipo-evento{% endif %}{% if d.aula_suspensa %} tipo-aula_suspensa{% endif %}"
+                            title="{% if d.status_tooltip %}{{ d.status_tooltip }}{% if d.descricao %} - {{ d.descricao }}{% endif %}{% else %}{{ d.descricao|default:'' }}{% endif %}">
+                            {{ d.numero }}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {# Legenda Mini Padronizada #}
+                    <div class="mini-legenda legenda-quebra" style="margin-top: 15px;">
+                        <span class="leg-item"><i class="dot-letivo"></i> Letivo</span>
+                        <span class="leg-item"><i class="dot-evento"></i> Evento</span>
+                        <span class="leg-item"><i class="dot-feriado"></i> Feriado</span>
+                        <span class="leg-item"><i class="dot-prova"></i> Prova</span>
+                        <span class="leg-item"><i class="dot-suspensa"></i> Aula Suspensa</span>
+                        <span class="leg-item"><i class="dot-sabado"></i> Sáb. Letivo</span>
+                        <span class="leg-item"><i class="dot-recesso"></i> Recesso</span>
+                    </div>
+                </div>
+            </section>
+            {% endcache %}
+
+        </div>
+
+    </div>
+
+    {# ════════════════ GRADE HORÁRIA ════════════════ #}
+    <div class="secao-grade">
+        <p class="secao-titulo">
+            <i class="fa-solid fa-clock"></i> Grade Horária — {{ aluno.turma.nome }}
+        </p>
+
+        {% if grade_horario %}
+        <div class="grade-wrapper">
+            <table class="grade-table">
+                <thead>
+                    <tr>
+                        <th>Horário</th>
+                        <th>Segunda</th>
+                        <th>Terça</th>
+                        <th>Quarta</th>
+                        <th>Quinta</th>
+                        <th>Sexta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for horario, aulas in grade_horario.items %}
+                    <tr>
+                        <td class="horario-col">{{ horario }}</td>
+                        <td>{{ aulas.segunda|default:"—" }}</td>
+                        <td>{{ aulas.terca|default:"—" }}</td>
+                        <td>{{ aulas.quarta|default:"—" }}</td>
+                        <td>{{ aulas.quinta|default:"—" }}</td>
+                        <td>{{ aulas.sexta|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="aviso-grade">Grade horária ainda não definida para sua turma.</p>
+        {% endif %}
+    </div>
+
+</section>
+
+
+<!-- MODAL DE IMPRESSÃO -->
+<div id="modal-impressao" class="modal-impressao">
+    <div class="modal-conteudo">
+        <span class="fechar-modal" onclick="fecharModal()">&times;</span>
+
+        <div id="boletim-imprimir" class="boletim-imprimir">
+            <div class="boletim-header">
+                <h1>BOLETIM ESCOLAR</h1>
+                <p class="sistema">Documento gerado pelo SIGE</p>
+            </div>
+
+            <div class="boletim-info-aluno">
+                <div class="info-linha">
+                    <span class="label">Nome:</span>
+                    <span class="valor">{{ aluno.nome_completo }}</span>
+                </div>
+                <div class="info-linha">
+                    <span class="label">CPF:</span>
+                    <span class="valor">{{ aluno.cpf }}</span>
+                </div>
+                <div class="info-linha">
+                    <span class="label">Data de Nascimento:</span>
+                    <span class="valor">{{ aluno.data_nascimento|date:"d/m/Y" }}</span>
+                </div>
+                <div class="info-linha">
+                    <span class="label">Turma:</span>
+                    <span class="valor">{{ aluno.turma.nome }}</span>
+                </div>
+                <div class="info-linha">
+                    <span class="label">Turno:</span>
+                    <span class="valor">{{ aluno.turma.get_turno_display }}</span>
+                </div>
+                <div class="info-linha">
+                    <span class="label">Ano Letivo:</span>
+                    <span class="valor">{{ aluno.turma.ano }}</span>
+                </div>
+            </div>
+
+            <table class="boletim-tabela">
+                <thead>
+                    <tr>
+                        <th>Disciplina</th>
+                        <th>1º Bim</th>
+                        <th>2º Bim</th>
+                        <th>3º Bim</th>
+                        <th>4º Bim</th>
+                        <th>Média</th>
+                        <th>Faltas</th>
+                        <th>% Faltas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in disciplinas_com_notas %}
+                    <tr>
+                        <td>{{ item.disciplina.nome }}</td>
+                        <td>{{ item.nota.nota1|default:"--" }}</td>
+                        <td>{{ item.nota.nota2|default:"--" }}</td>
+                        <td>{{ item.nota.nota3|default:"--" }}</td>
+                        <td>{{ item.nota.nota4|default:"--" }}</td>
+                        <td><strong>{{ item.nota.media|floatformat:1|default:"--" }}</strong></td>
+                        <td>
+                            {% if item.total_aulas > 0 %}
+                            {{ item.faltas }}/{{ item.total_aulas }}
+                            {% else %}
+                            --
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.total_aulas > 0 %}
+                            {{ item.percentual_faltas }}%
+                            {% else %}
+                            --
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5"><strong>Média Geral</strong></td>
+                        <td><strong>{{ media_geral|floatformat:1|default:"--" }}</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                    {% if situacao_geral != "--" %}
+                    <tr>
+                        <td colspan="5"><strong>Situação Geral</strong></td>
+                        <td><strong>{{ situacao_geral }}</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                    {% endif %}
+                </tfoot>
+            </table>
+
+            <div class="boletim-footer">
+                <p><strong>Data de emissão:</strong> {{ agora|date:"d/m/Y às H:i" }}</p>
+                <p class="assinatura">_______________________________</p>
+                <p class="assinatura-texto">Assinatura do Responsável</p>
+            </div>
+        </div>
+
+        <button onclick="window.print()" class="btn-imprimir-modal">
+            <i class="fa-solid fa-print"></i> Imprimir
+        </button>
+    </div>
+</div>
+
+<script>
+    // Toggle disciplinas
+    function toggleNotas(element) {
+        const card = element.parentElement;
+        const seta = element.querySelector('.seta');
+
+        card.classList.toggle('aberto');
+
+        if (card.classList.contains('aberto')) {
+            seta.style.transform = 'rotate(180deg)';
+        } else {
+            seta.style.transform = 'rotate(0deg)';
+        }
+    }
+
+    // Modal de impressão
+    function imprimirBoletim() {
+        document.getElementById('modal-impressao').style.display = 'flex';
+    }
+
+    function fecharModal() {
+        document.getElementById('modal-impressao').style.display = 'none';
+    }
+
+    // Fechar modal clicando fora
+    window.onclick = function (event) {
+        const modal = document.getElementById('modal-impressao');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // ── Toggle Widget Recolhível ──
+    function toggleWidget(widgetId, storageKey) {
+        const widget = document.getElementById(widgetId);
+        if (!widget) return;
+        const isCollapsed = widget.classList.toggle('collapsed');
+        try { localStorage.setItem('sige_widget_' + storageKey, isCollapsed ? '1' : '0'); } catch (e) { }
+    }
+
+    // Restaurar estado salvo ao carregar
+    (function restaurarWidgets() {
+        var widgets = [
+            { id: 'widget-mural', key: 'mural' },
+            { id: 'widget-desempenho', key: 'desempenho' }
+        ];
+        widgets.forEach(function (w) {
+            try {
+                if (localStorage.getItem('sige_widget_' + w.key) === '1') {
+                    var el = document.getElementById(w.id);
+                    if (el) el.classList.add('collapsed');
+                }
+            } catch (e) { }
+        });
+    })();
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const headerPainel = document.querySelector('.header-painel');
+        if (headerPainel) {
+            headerPainel.addEventListener('mousemove', function (e) {
+                const rect = headerPainel.getBoundingClientRect();
+                const px = (e.clientX - rect.left) / rect.width - 0.5;
+                const py = (e.clientY - rect.top) / rect.height - 0.5;
+                headerPainel.style.transform = `translate3d(${px * 6}px, ${py * 5}px, 0)`;
+            });
+            headerPainel.addEventListener('mouseleave', function () {
+                headerPainel.style.transform = 'translate3d(0, 0, 0)';
+            });
+        }
+
+        const barrasFreq = document.querySelectorAll('.freq-barra[data-final-width]');
+        barrasFreq.forEach((barra, idx) => {
+            const destino = barra.dataset.finalWidth || '0';
+            setTimeout(() => {
+                barra.style.width = `${destino}%`;
+            }, 220 + (idx * 55));
+        });
+
+        const ctx = document.getElementById('graficoDesempenho');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        {% for item in disciplinas_com_notas %}'{{ item.disciplina.nome|truncatechars:15 }}'{% if not forloop.last %}, {% endif %}{% endfor %}
+                    ],
+                    datasets: [{
+                        label: 'Média',
+                        data: [
+                            {% for item in disciplinas_com_notas %}{{ item.nota.media|default:"0"|unlocalize }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        ],
+                        backgroundColor: 'rgba(66, 133, 244, 0.7)',
+                        borderColor: 'rgba(66, 133, 244, 1)',
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            ticks: {
+                                stepSize: 2
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+
+    // ── Atualizar Status de Leitura (AJAX) ──
+    function atualizarLeitura(selectEl) {
+        const val = selectEl.value;
+        if (!val) return;
+        const id = selectEl.dataset.emprestimoId;
+        const badge = document.getElementById('badge-' + id);
+        const card = selectEl.closest('.card-devolvido');
+
+        const icons = {
+            'FINALIZADO': '<i class="fa-solid fa-circle-check"></i> Finalizado',
+            'LENDO': '<i class="fa-solid fa-book-open"></i> Lendo',
+            'NAO_INFORMADO': '<i class="fa-regular fa-clock"></i> Devolvido'
+        };
+        const classes = {
+            'FINALIZADO': 'badge-leitura-finalizado',
+            'LENDO': 'badge-leitura-lendo',
+            'NAO_INFORMADO': 'badge-leitura-nao_informado'
+        };
+
+        fetch('{% url "atualizar_status_leitura" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({ emprestimo_id: id, status_leitura: val })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok) {
+                    badge.className = 'badge-leitura ' + (classes[val] || '');
+                    badge.innerHTML = icons[val] || val;
+                    card.style.borderColor = val === 'FINALIZADO' ? 'rgba(52,211,153,0.4)' :
+                        val === 'LENDO' ? 'rgba(56,189,248,0.4)' :
+                            '';
+                    setTimeout(() => { card.style.borderColor = ''; }, 1800);
+                }
+            })
+            .catch(() => { });
+    }
+</script>
+
+<script>
+    // ── Notificações do Mural de Avisos (localStorage) ──
+    const COMUNICADOS_ATUAIS = [{% for c in comunicados %}{{ c.id }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+    const STORAGE_KEY_MURAL = 'sige_mural_vistos_{{ request.user.id }}';
+
+    function getMuralVistos() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY_MURAL) || '[]');
+        } catch (e) { return []; }
+    }
+
+    function inicializarNotificacoesMural() {
+        if (!COMUNICADOS_ATUAIS.length) return;
+
+        const vistos = getMuralVistos();
+        const novos = COMUNICADOS_ATUAIS.filter(id => !vistos.includes(id));
+
+        // Atualiza badge da header
+        const badge = document.getElementById('mural-badge-novo');
+        if (badge && novos.length > 0) {
+            badge.textContent = novos.length > 9 ? '9+' : novos.length;
+            badge.classList.add('visivel');
+        }
+
+        // Destaca cada item novo dentro do mural
+        if (novos.length > 0) {
+            novos.forEach(id => {
+                const el = document.querySelector(`.item-mural-side[data-com-id="${id}"]`);
+                if (el) el.classList.add('item-mural-novo');
+            });
+
+            // Pulsa a borda do widget mural para chamar atenção
+            const widgetMural = document.getElementById('widget-mural');
+            if (widgetMural) {
+                widgetMural.style.borderColor = 'rgba(244,63,94,0.5)';
+                setTimeout(() => { widgetMural.style.borderColor = ''; }, 2500);
+            }
+        }
+    }
+
+    function marcarMuralLido() {
+        try {
+            const vistos = getMuralVistos();
+            const merged = [...new Set([...vistos, ...COMUNICADOS_ATUAIS])];
+            localStorage.setItem(STORAGE_KEY_MURAL, JSON.stringify(merged));
+        } catch (e) { }
+
+        const badge = document.getElementById('mural-badge-novo');
+        if (badge) { badge.textContent = ''; badge.classList.remove('visivel'); }
+        document.querySelectorAll('.item-mural-novo').forEach(el => el.classList.remove('item-mural-novo'));
+    }
+
+    // Inicializa ao carregar a página
+    document.addEventListener('DOMContentLoaded', inicializarNotificacoesMural);
+</script>
+
+{% endblock %}

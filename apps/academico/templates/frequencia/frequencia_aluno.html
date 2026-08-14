@@ -1,0 +1,197 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Minha Frequência{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/frequencia_aluno.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="pagina-conteudo">
+
+<div class="breadcrumb" style="margin-bottom: 20px;">
+  <a href="{% url 'painel_aluno' %}" class="btn-voltar" style="display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.85rem; text-decoration: none; font-weight: 700; padding: 6px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle); transition: all 0.2s;" onmouseover="this.style.background='var(--bg-elevated)'; this.style.color='var(--text-primary)';" onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.color='var(--text-muted)';">
+    <i class="fa-solid fa-arrow-left"></i> Voltar ao Painel
+  </a>
+</div>
+
+<div class="freq-header">
+  <div class="freq-header__left">
+    <h1><i class="fa-solid fa-chart-pie"></i> Minha Frequência</h1>
+    <p>{{ aluno.turma.nome }} &mdash; {{ aluno.turma.get_turno_display }}</p>
+  </div>
+  <div class="freq-header__avatar">
+    {% if aluno.foto %}
+      <img src="{{ aluno.foto.url }}" alt="Foto">
+    {% else %}
+      <i class="fa-solid fa-user"></i>
+    {% endif %}
+  </div>
+</div>
+
+
+{% if frequencias %}
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--blue">
+        <i class="fa-solid fa-book"></i>
+      </div>
+      <div>
+        <div class="stat-card__val">{{ frequencias|length }}</div>
+        <div class="stat-card__lbl">Disciplinas</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--green">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <div>
+        <div class="stat-card__val" id="total-presencas">—</div>
+        <div class="stat-card__lbl">Presenças totais</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--red">
+        <i class="fa-solid fa-circle-xmark"></i>
+      </div>
+      <div>
+        <div class="stat-card__val" id="total-faltas">—</div>
+        <div class="stat-card__lbl">Faltas totais</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__icon stat-card__icon--yellow">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div>
+        <div class="stat-card__val" id="total-risco">—</div>
+        <div class="stat-card__lbl">Em risco</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="section-title">
+    <i class="fa-solid fa-list"></i> Frequência por disciplina
+  </p>
+
+  <div class="disc-grid">
+    {% for item in frequencias %}
+    <div class="disc-card"
+         data-total="{{ item.total_aulas }}"
+         data-presencas="{{ item.presencas }}"
+         data-faltas="{{ item.faltas }}">
+
+      <div class="disc-card__top">
+        <div class="disc-card__nome">{{ item.disciplina__nome }}</div>
+        {% if item.total_aulas == 0 %}
+          <span class="badge-sem-dados"><i class="fa-solid fa-minus"></i> Sem dados</span>
+        {% else %}
+          <span class="badge-situacao"></span>
+        {% endif %}
+      </div>
+
+      {% if item.total_aulas > 0 %}
+        {% widthratio item.presencas item.total_aulas 100 as pct %}
+        <div class="progress-wrap">
+          <div class="progress-header">
+            <span class="progress-label">Frequência</span>
+            <span class="progress-pct {% if pct < 75 %}risco{% else %}ok{% endif %}">{{ pct }}%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-bar__fill {% if pct < 75 %}risco{% else %}ok{% endif %}"
+                 style="width:{{ pct }}%"></div>
+          </div>
+        </div>
+
+        <div class="disc-card__nums">
+          <div class="num-item">
+            <div class="num-item__val num-item__val--total">{{ item.total_aulas }}</div>
+            <div class="num-item__lbl">Aulas</div>
+          </div>
+          <div class="num-item">
+            <div class="num-item__val num-item__val--present">{{ item.presencas }}</div>
+            <div class="num-item__lbl">Presenças</div>
+          </div>
+          <div class="num-item">
+            <div class="num-item__val num-item__val--absent">{{ item.faltas }}</div>
+            <div class="num-item__lbl">Faltas</div>
+          </div>
+        </div>
+      {% else %}
+        <div class="disc-card__vazio">
+          <i class="fa-solid fa-calendar-xmark"></i>
+          Nenhuma chamada registrada ainda.
+        </div>
+      {% endif %}
+
+    </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="empty-state">
+    <i class="fa-solid fa-chart-pie"></i>
+    <p>Nenhuma informação de frequência disponível ainda.</p>
+  </div>
+{% endif %}
+
+</div>{# /pagina-conteudo #}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var totalPresencas = 0;
+  var totalFaltas    = 0;
+  var totalRisco     = 0;
+
+  document.querySelectorAll('.disc-card').forEach(function (card) {
+    var total     = parseInt(card.dataset.total,     10) || 0;
+    var presencas = parseInt(card.dataset.presencas, 10) || 0;
+    var faltas    = parseInt(card.dataset.faltas,    10) || 0;
+
+    totalPresencas += presencas;
+    totalFaltas    += faltas;
+
+    var pct = total > 0 ? Math.round((presencas / total) * 100) : null;
+
+    var badge = card.querySelector('.badge-situacao');
+    if (pct !== null && pct < 75) {
+      totalRisco++;
+      card.classList.add('em-risco');
+      if (badge) {
+        badge.className = 'badge-risco';
+        badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Em risco';
+      }
+    } else if (pct !== null) {
+      if (badge) {
+        badge.className = 'badge-ok';
+        badge.innerHTML = '<i class="fa-solid fa-circle-check"></i> Regular';
+      }
+    }
+  });
+
+  var elP = document.getElementById('total-presencas');
+  var elF = document.getElementById('total-faltas');
+  var elR = document.getElementById('total-risco');
+  if (elP) elP.textContent = totalPresencas;
+  if (elF) elF.textContent = totalFaltas;
+  if (elR) elR.textContent = totalRisco;
+
+  if (totalRisco > 0) {
+    var alerta = document.createElement('div');
+    alerta.className = 'alerta-risco';
+    alerta.innerHTML =
+      '<i class="fa-solid fa-triangle-exclamation"></i>' +
+      '<div><strong>Atenção: você está em risco de reprovação por falta!</strong>' +
+      ' Uma ou mais disciplinas estão abaixo de 75% de presença.</div>';
+    var breadcrumb = document.querySelector('.breadcrumb');
+    if (breadcrumb && breadcrumb.nextSibling) {
+      breadcrumb.parentNode.insertBefore(alerta, breadcrumb.nextSibling.nextSibling);
+    }
+  }
+});
+</script>
+{% endblock %}

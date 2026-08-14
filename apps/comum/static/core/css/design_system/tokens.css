@@ -1,0 +1,86 @@
+:root {
+    /* ============================================================ 
+       COLOR PALETTE (HSL-based for consistency & accessibility)
+    ============================================================ */
+    --primary-h: 245;
+    --primary-s: 75%;
+    --primary-l: 60%;
+    
+    /* Core Brand Colors */
+    --primary:       hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+    --primary-dark:  hsl(var(--primary-h), var(--primary-s), 50%);
+    --primary-light: hsl(var(--primary-h), var(--primary-s), 95%);
+    
+    /* Semantic Surfaces (Dark Theme) */
+    --bg-base:        hsl(222, 47%, 7%);   /* #090e1a */
+    --bg-surface:     hsl(222, 47%, 11%);  /* #0f1729 */
+    --bg-elevated:    hsl(222, 45%, 14%);  /* #131e33 */
+    --bg-hover:       hsl(222, 45%, 18%);  /* #1a2844 */
+    --bg-input:       hsl(222, 45%, 20%);
+
+    /* Accents (Increased Saturation for Premium Pop) */
+    --accent-violet:  hsl(250, 100%, 75%); /* Vibrant Violet */
+    --accent-cyan:    hsl(185, 100%, 50%); /* Bright Cyan */
+    --accent-emerald: hsl(150, 100%, 45%); /* Lush Emerald */
+    --accent-amber:   hsl(45, 100%, 55%);  /* Pure Gold */
+    --accent-ruby:    hsl(0, 100%, 65%);   /* Critical Red */
+
+    /* Text */
+    --text-primary:   hsl(227, 100%, 97%); 
+    --text-secondary: hsl(225, 25%, 75%);  
+    --text-muted:     hsl(221, 25%, 45%);  
+    --text-dim:       hsl(221, 20%, 35%);
+
+    /* Borders (Enhanced for High-Contrast) */
+    --border-subtle:  hsla(0, 0%, 100%, 0.08);
+    --border-mid:     hsla(0, 0%, 100%, 0.15);
+    --border-strong:  hsla(0, 0%, 100%, 0.25);
+    --border-active:  hsla(var(--primary-h), 100%, 75%, 0.5);
+
+    /* ============================================================
+       LAYOUT COLOR TOKENS
+    ============================================================ */
+    --header-bg: hsla(222, 47%, 7%, 0.85);
+    --header-bg-scrolled: hsla(222, 47%, 7%, 0.98);
+    --sidebar-bg-top: var(--bg-surface);
+    --sidebar-bg-bottom: var(--bg-base);
+
+    /* ============================================================ 
+       TYPOGRAPHY
+    ============================================================ */
+    --font-main:    'Inter', system-ui, -apple-system, sans-serif;
+    --font-display: 'Plus Jakarta Sans', 'Outfit', sans-serif;
+
+    /* ============================================================ 
+       SPACING & LAYOUT
+    ============================================================ */
+    --space-xs: 0.5rem;
+    --space-sm: 1rem;
+    --space-md: 1.5rem;
+    --space-lg: 2.5rem;
+
+    --menu-height: 52px;
+    --menu-width:  260px;
+
+    /* ============================================================ 
+       SHAPE & DEPTH
+    ============================================================ */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, .25);
+    --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 24px 64px rgba(0, 0, 0, .5);
+    --shadow-glow: rgba(var(--primary-h), var(--primary-s), var(--primary-l), 0.45) 0 0 25px;
+    --shadow-btn: 0 8px 24px rgba(0, 0, 0, 0.25);
+
+    /* ============================================================ 
+       TRANSITIONS
+    ============================================================ */
+    --transition-fast: .12s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-mid:  .24s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: .4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: .45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}

@@ -1,0 +1,158 @@
+{% extends "ti/base_ti.html" %}
+{% load static %}
+
+{% block title %}Cofre de Snapshots — SIGE Mission Control{% endblock %}
+
+{% block ti_extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/painel_de_superusuario.css' %}">
+<link rel="stylesheet" href="{% static 'ti/css/backups_apex.css' %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block ti_content %}
+<div class="bg-layer"></div>
+<div class="grid-layer"></div>
+
+<div class="page-wrap">
+
+  {# ═══ PAGE HEADER ═══ #}
+  <header class="page-header">
+    <div>
+      <div class="page-header__meta">
+        <span class="pulse-dot"></span>
+        PROTOCOL: WORM IMMUTABLE · SIGE TI v7.3.2-APEX
+      </div>
+      <h1 class="page-title">Backups &amp; <em>Snapshots</em></h1>
+    </div>
+
+    <div class="header-actions">
+      <div class="vault-badge">
+        <span class="vault-badge__dot"></span>
+        VAULT: <span id="vaultStatus">PROTECTED</span>
+      </div>
+      <form action="{% url 'ti:disparar_backup' %}" method="POST">
+        {% csrf_token %}
+        <button type="submit" class="btn-sige-primario">
+          <i class="fa-solid fa-shield-virus"></i>
+          Disparar Snapshot
+        </button>
+      </form>
+    </div>
+  </header>
+
+  <div class="main-grid">
+
+    {# ═══ COLUNA PRINCIPAL ═══ #}
+    <div class="col-main">
+      
+      {# Vault Hero Partial #}
+      {% include "ti/backups/_hero.html" %}
+
+      {# Archive Header #}
+      <div class="list-header" style="margin-top: 30px;">
+        <h3>Archive Explorer</h3>
+        <span class="list-count">{{ backups|length }} VOLUMES PROTEGIDOS</span>
+      </div>
+
+      <div class="snap-cols">
+        <span>Volume Archive</span>
+        <span>Compressed Size</span>
+        <span>TTL / Persistence</span>
+        <span>Integrity</span>
+        <span style="text-align:right;">Access</span>
+      </div>
+
+      {# Archive Rows Loop #}
+      {% for b in backups %}
+        {% include "ti/backups/_row.html" %}
+      {% empty %}
+      <div class="card" style="text-align: center; padding: 100px 40px; border: 1px dashed var(--c-border);">
+        <i class="fa-solid fa-box-open" style="font-size: 4rem; color: var(--c-dim); margin-bottom: 25px;"></i>
+        <p style="color: var(--c-muted); font-size: 1rem; font-weight: 300;">Nenhum snapshot indexado no cofre no momento.</p>
+      </div>
+      {% endfor %}
+
+    </div>{# /col-main #}
+
+    {# Sidebar Partial #}
+    {% include "ti/backups/_sidebar.html" %}
+
+  </div>{# /main-grid #}
+</div>{# /page-wrap #}
+
+<script>
+(function() {
+  // ── Shine effect tracker ──
+  document.addEventListener('mousemove', e => {
+    document.querySelectorAll('.card, .vault-hero, .snap-row').forEach(card => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      card.style.setProperty('--x', `${x}px`);
+      card.style.setProperty('--y', `${y}px`);
+    });
+  });
+
+  // ── Terminal Logic ──
+  const logsEl = document.getElementById('backupLogs');
+  if (logsEl) {
+    const EVENTS = [
+      ['VAULT',  'SHA-256 Integrity check passed for block #A94.'],
+      ['GEO',    'Incremental block replicated to US-EAST-1.'],
+      ['CRYPTO', 'AES-256 Rotation completed successfully.'],
+      ['WORM',   'Hardware-level lock verified for archive.'],
+      ['VAULT',  'Snapshot volume metadata indexed.'],
+      ['SYS',    'System state captured — All systems nominal.'],
+      ['SOC',    'Anomaly detection scan completed — Clean.'],
+    ];
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function ts() {
+      const d = new Date();
+      return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function appendLog() {
+      const [sys, msg] = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+      const cursor = logsEl.querySelector('.term-cursor')?.parentElement;
+      if (cursor) logsEl.removeChild(cursor);
+
+      const line = document.createElement('div');
+      line.className = 'term-line';
+      line.innerHTML = `
+        <span style="color: var(--c-dim); flex-shrink: 0;">${ts()}</span>
+        <span class="term-sys">${sys}</span>
+        <span class="term-msg">${msg}</span>`;
+      logsEl.appendChild(line);
+
+      const cur = document.createElement('div');
+      cur.className = 'term-line';
+      cur.innerHTML = '<span class="term-cursor" style="display:inline-block; width:6px; height:11px; background:#4ade80; animation:blink 1.2s step-end infinite;"></span>';
+      logsEl.appendChild(cur);
+
+      logsEl.scrollTop = logsEl.scrollHeight;
+      if (logsEl.children.length > 25) logsEl.removeChild(logsEl.children[0]);
+    }
+
+    setInterval(appendLog, 3500);
+  }
+
+  // ── Vault Status ──
+  const statusEl = document.getElementById('vaultStatus');
+  if (statusEl) {
+    setInterval(() => {
+      const scanning = Math.random() < 0.1;
+      statusEl.textContent = scanning ? 'SCANNING...' : 'PROTECTED';
+      statusEl.parentElement.style.borderColor = scanning ? 'var(--c-amber)' : '';
+      statusEl.style.color = scanning ? 'var(--c-amber)' : '';
+    }, 5000);
+  }
+})();
+</script>
+
+<style>
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes pulse-icon { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+</style>
+{% endblock %}

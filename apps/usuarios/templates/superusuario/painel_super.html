@@ -1,0 +1,272 @@
+{# ============================================================ #}
+{# template: superusuario/painel_super.html                    #}
+{# ============================================================ #}
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Painel — SIGE{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/painel_de_superusuario.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="painel-sige">
+
+  {# ════════════════ HEADER ════════════════ #}
+  <header class="header-painel">
+    <div class="header-esquerda">
+      <span class="header-label">SIGE · Painel de Controle</span>
+      <h1>
+        Olá,
+        <span class="nome-destaque">{{ nome_exibicao }}</span>
+      </h1>
+    </div>
+
+    <form method="get" class="filtro-ano-painel">
+      <span class="icone-cal"><i class="fa-solid fa-calendar-days"></i></span>
+      <label for="filtro-select">Ano Letivo</label>
+      <select id="filtro-select" name="ano" onchange="this.form.submit()">
+        {% for ano in anos_disponiveis %}
+          <option value="{{ ano }}" {% if ano == ano_filtro %}selected{% endif %}>
+            {{ ano }}
+          </option>
+        {% endfor %}
+      </select>
+    </form>
+  </header>
+
+  {# ════════════════ CONTEÚDO PRINCIPAL ════════════════ #}
+  <div class="conteudo-geral">
+
+    {# ───── COLUNA ESQUERDA ───── #}
+    <section class="coluna-esquerda">
+
+      {# ── Cards de totais ── #}
+      <section class="cards">
+        <article class="card">
+          <div class="card-icone">
+            <i class="fa-solid fa-users-rectangle"></i>
+          </div>
+          <p class="card-label">Turmas</p>
+          <h2 class="card-valor">{{ total_turmas }}</h2>
+        </article>
+
+        <article class="card">
+          <div class="card-icone">
+            <i class="fa-solid fa-user-graduate"></i>
+          </div>
+          <p class="card-label">Alunos</p>
+          <h2 class="card-valor">{{ total_alunos }}</h2>
+        </article>
+
+        <article class="card">
+          <div class="card-icone">
+            <i class="fa-solid fa-chalkboard-user"></i>
+          </div>
+          <p class="card-label">Professores</p>
+          <h2 class="card-valor">{{ total_professores }}</h2>
+        </article>
+
+        <article class="card">
+          <div class="card-icone">
+            <i class="fa-solid fa-book"></i>
+          </div>
+          <p class="card-label">Disciplinas</p>
+          <h2 class="card-valor">{{ total_disciplinas }}</h2>
+        </article>
+
+        <article class="card">
+          <div class="card-icone" style="color: var(--accent-amber);">
+            <i class="fa-solid fa-file-medical"></i>
+          </div>
+          <p class="card-label">Atestados Pendentes</p>
+          <h2 class="card-valor" style="color: var(--accent-amber);">{{ atestados_pendentes_count }}</h2>
+        </article>
+
+        <article class="card">
+          <div class="card-icone" style="color: var(--accent-cyan);">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <p class="card-label">Livros no Acervo</p>
+          <h2 class="card-valor" style="color: var(--accent-cyan);">{{ total_livros }}</h2>
+        </article>
+      </section>
+
+      {# ── Barra de resumo ── #}
+      <section class="resumo-bar">
+        <div class="resumo-item">
+          <p class="resumo-item-label">Ano Letivo</p>
+          <p class="resumo-item-valor">{{ ano_filtro }}</p>
+        </div>
+        <div class="resumo-item">
+          <p class="resumo-item-label">Total de Alunos</p>
+          <p class="resumo-item-valor">{{ total_alunos }}</p>
+        </div>
+        <div class="resumo-item">
+          <p class="resumo-item-label">Total de Turmas</p>
+          <p class="resumo-item-valor">{{ total_turmas }}</p>
+        </div>
+      </section>
+    </section>
+
+    {# ───── COLUNA DIREITA ───── #}
+    <aside class="coluna-direita">
+
+      {# ── Calendário ── #}
+      <section class="calendario-box">
+        <a href="{% url 'visualizar_calendario' %}" class="calendario-header-link" style="text-decoration: none; color: inherit;">
+          <header class="calendario-cabecalho">
+            <h2 id="cal-mes-nome">{{ mes_nome }}</h2>
+            <span class="calendario-ano" id="cal-ano">{{ ano_calendario }}</span>
+          </header>
+        </a>
+        <div class="calendario-grade" id="cal-grade">
+          <div class="nome-dia">D</div>
+          <div class="nome-dia">S</div>
+          <div class="nome-dia">T</div>
+          <div class="nome-dia">Q</div>
+          <div class="nome-dia">Q</div>
+          <div class="nome-dia">S</div>
+          <div class="nome-dia">S</div>
+
+          {% for d in calendario %}
+            <div class="dia {% if d.vazio %}vazio{% endif %} {% if d.hoje %}atual{% endif %} tipo-{{ d.tipo|lower }}{% if d.tem_evento %} tipo-evento{% endif %}{% if d.aula_suspensa %} tipo-aula_suspensa{% endif %}" 
+                 title="{% if d.status_tooltip %}{{ d.status_tooltip }}{% if d.descricao %} - {{ d.descricao }}{% endif %}{% else %}{{ d.descricao|default:'' }}{% endif %}">
+              {{ d.numero }}
+            </div>
+          {% endfor %}
+        </div>
+
+        {# Legenda Mini Padronizada #}
+        <div class="mini-legenda" style="flex-wrap: wrap;">
+            <span class="leg-item" style="margin-bottom: 4px;"><i class="dot-letivo"></i> Letivo</span>
+            <span class="leg-item" style="margin-bottom: 4px;"><i class="dot-evento"></i> Evento</span>
+            <span class="leg-item" style="margin-bottom: 4px;"><i class="dot-feriado"></i> Feriado</span>
+            <span class="leg-item" style="margin-bottom: 4px;"><i class="dot-prova"></i> Prova</span>
+            <span class="leg-item" style="margin-bottom: 4px;"><i class="dot-suspensa"></i> Aula Suspensa</span>
+            <span class="leg-item"><i class="dot-sabado"></i> Sáb. Letivo</span>
+            <span class="leg-item"><i class="dot-recesso"></i> Recesso</span>
+        </div>
+      </section>
+
+      {# ── Mural de Avisos (Padronizado via sige-widget) ── #}
+      <section class="sige-widget" id="mural-avisos-super">
+        <header class="sige-widget-header" onclick="toggleMuralSuper()">
+          <h3>
+            <i class="fa-solid fa-bullhorn" style="color: var(--accent-cyan);"></i> Mural de Avisos
+          </h3>
+          <i class="fa-solid fa-chevron-up sige-widget-toggle"></i>
+        </header>
+        
+        <div class="sige-widget-body">
+          {% if comunicados %}
+            <div class="lista-mural-compacta">
+              {% for c in comunicados %}
+                <div class="item-mural-side mural-tipo-{{ c.publico_alvo|lower }} {% if c.importancia == 'ALTA' %}urgente{% endif %}">
+                  <div class="item-meta">
+                    <span class="tag-mural publico-{{ c.publico_alvo|lower }}">
+                      {% if c.publico_alvo == 'GLOBAL' %}<i class="fa-solid fa-earth-americas"></i>
+                      {% elif c.publico_alvo == 'ALUNOS' %}<i class="fa-solid fa-user-graduate"></i>
+                      {% elif c.publico_alvo == 'PROFESSORES' %}<i class="fa-solid fa-person-chalkboard"></i>
+                      {% elif c.publico_alvo == 'GESTORES' %}<i class="fa-solid fa-user-tie"></i>
+                      {% endif %}
+                      {{ c.get_publico_alvo_display }}
+                    </span>
+                    <span class="data">{{ c.data_publicacao|date:"d/m" }}</span>
+                  </div>
+                  <h4>{{ c.titulo }}</h4>
+                  <p>{{ c.conteudo|truncatechars:60 }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="vazio-mural">
+              <p>Nenhum aviso no momento.</p>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      {# ── Gestão de Documentos (Atestados) ── #}
+      {% if atestados_pendentes_count > 0 %}
+      <section class="info-rapida" style="margin-bottom: 20px; border-left: 4px solid #f87171; background: var(--bg-surface);">
+        <h3 style="font-size: 0.9rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: #f87171; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800;">
+          <i class="fa-solid fa-file-medical"></i> Atestados Pendentes
+        </h3>
+        <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.5;">
+            Existem <strong style="color: var(--text-primary);">{{ atestados_pendentes_count }}</strong> atestados aguardando sua revisão e justificativa de faltas.
+        </p>
+        <a href="{% url 'gestao_atestados' %}" class="btn-sige-ruby" style="width: 100%;">
+            <i class="fa-solid fa-list-check"></i> Revisar Agora
+        </a>
+      </section>
+      {% endif %}
+
+      {# ── Visão geral rápida ── #}
+      <section class="info-rapida">
+        <p class="info-rapida-titulo">Gestão de Cadastros</p>
+        <ul class="info-rapida-lista">
+          <li class="info-item">
+            <span class="info-item-nome">
+              <span class="info-dot" style="background:var(--accent-violet)"></span>
+              Turmas ativas
+            </span>
+            <span class="info-item-valor">{{ total_turmas }}</span>
+          </li>
+          <li class="info-item">
+            <span class="info-item-nome">
+              <span class="info-dot" style="background:var(--accent-cyan)"></span>
+              Total de alunos
+            </span>
+            <span class="info-item-valor">{{ total_alunos }}</span>
+          </li>
+          <li class="info-item">
+            <span class="info-item-nome">
+              <span class="info-dot" style="background:var(--accent-emerald)"></span>
+              Professores
+            </span>
+            <span class="info-item-valor">{{ total_professores }}</span>
+          </li>
+          <li class="info-item">
+            <span class="info-item-nome">
+              <span class="info-dot" style="background:var(--accent-amber)"></span>
+              Disciplinas
+            </span>
+            <span class="info-item-valor">{{ total_disciplinas }}</span>
+          </li>
+        </ul>
+      </section>
+
+    </aside>
+
+  </div>
+
+  {# ════ CTA — Atalho para o Painel BI ════ #}
+  <div style="margin-top: 28px; text-align: center;">
+    <a href="{% url 'dashboard_bi_academico' %}" class="btn-sige-primario" style="padding: 14px 42px; font-size: 1rem;">
+      <i class="fa-solid fa-chart-pie" style="font-size: 1.1rem;"></i>
+      Ver Análise Completa no Painel BI
+      <i class="fa-solid fa-arrow-right" style="font-size: .85rem;"></i>
+    </a>
+  </div>
+
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function toggleMuralSuper() {
+    const mural = document.getElementById('mural-avisos-super');
+    mural.classList.toggle('collapsed');
+    const isCollapsed = mural.classList.contains('collapsed');
+    localStorage.setItem('mural_super_collapsed', isCollapsed);
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    const isCollapsed = localStorage.getItem('mural_super_collapsed') === 'true';
+    if (isCollapsed) {
+      document.getElementById('mural-avisos-super').classList.add('collapsed');
+    }
+  });
+</script>
+{% endblock %}

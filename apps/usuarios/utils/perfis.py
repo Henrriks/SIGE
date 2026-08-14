@@ -1,0 +1,61 @@
+"""
+Funções auxiliares de perfil: nome na UI, foto, redirecionamento por papel.
+
+O que é: centraliza regras “quem é esse usuário no SIGE?” para views e
+templates sem repetir ``hasattr``/``getattr`` espalhados.
+"""
+
+def get_nome_exibicao(user):
+    """Retorna o nome para exibição (Primeiro Sobrenome ou E-mail)."""
+    nome_auth = f"{user.first_name} {user.last_name}".strip()
+    return nome_auth if nome_auth else user.email
+
+
+def get_user_profile(user):
+    """Identifica e retorna o objeto de perfil vinculado ao User."""
+    for attr in ("gestor", "professor", "aluno", "responsavel"):
+        p = getattr(user, attr, None)
+        if p:
+            return p
+    return None
+
+
+def get_foto_perfil(user):
+    """Retorna a URL da foto de perfil ou avatar gerado pelo nome."""
+    perfil = get_user_profile(user)
+    if perfil and hasattr(perfil, "get_foto_url"):
+        return perfil.get_foto_url
+    nome = (
+        user.get_full_name().strip()
+        or user.get_short_name()
+        or user.username
+        or "Usuario"
+    ).replace(" ", "+")
+    return (
+        f"https://ui-avatars.com/api/?name={nome}"
+        "&background=0D8ABC&color=fff&size=128"
+    )
+
+
+def redirect_user(user):
+    """Determina a URL de destino após login."""
+    from apps.ti.utils.permissoes import usuario_e_apenas_ti
+
+    if user.is_superuser:
+        return "painel_super"
+    if hasattr(user, "gestor"):
+        return "painel_gestor"
+    if hasattr(user, "professor"):
+        return "painel_professor"
+    if hasattr(user, "aluno"):
+        return "painel_aluno"
+    if hasattr(user, "responsavel"):
+        return "painel_responsavel"
+    if usuario_e_apenas_ti(user):
+        return "ti:painel"
+    return "painel_usuarios"
+
+
+def is_super_ou_gestor(u):
+    """Verifica se o usuário é superusuário ou gestor."""
+    return u.is_superuser or hasattr(u, "gestor")

@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+{% load static vite_assets %}
+{# Página React (Vite) embutida no layout SIGE: menu, fontes e design system do Django. #}
+
+{% block title %}SIGE · App React{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+  /* Área do React ocupa a coluna de conteúdo sem “caixa” do template Vite standalone */
+  #root.vite-root--embed {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border: none;
+    min-height: min(70vh, 720px);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="root" class="vite-root vite-root--embed" data-sige-embed="1"></div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% vite_entry 'src/main.jsx' %}
+{% endblock %}

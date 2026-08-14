@@ -1,0 +1,119 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% block title %}Discentes{% endblock %}
+{% block header_title %}Discentes{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+<link rel="stylesheet" href="{% static 'core/css/listar_alunos.css' %}?v=2">
+{% endblock %}
+
+{% block content %}
+<main class="conteudo-principal">
+
+  <div class="header-discentes">
+    {# Botão voltar #}
+    <a href="{% url 'usuarios' %}" title="Voltar" class="btn-voltar">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+
+    <h1 class="titulo-pagina">Discentes</h1>
+
+    {# Botão cadastrar: Removido o <i> interno para evitar duplicidade com o CSS do btn-adicionar #}
+    <a href="{% url 'cadastrar_aluno' %}">
+      <button class="btn-adicionar">
+        Adicionar Discente
+      </button>
+    </a>
+  </div>
+
+  <div class="card-tabela">
+    {# Barra de busca #}
+    <form method="get" class="barra-busca">
+      <input type="text" name="q" placeholder="Buscar" value="{{ query|default:'' }}">
+      <i class="fa-solid fa-magnifying-glass"></i>
+    </form>
+
+    <div class="container-tabela">
+      <table class="tabela-discentes">
+        <thead>
+          <tr>
+            <th class="coluna-nome">Nome</th>
+            <th class="coluna-email">E-mail</th>
+            <th class="coluna-turma">Turma</th>
+            <th class="coluna-acoes">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for aluno in alunos %}
+          <tr>
+            <td class="tabela-info">
+              <div class="user-info-cell">
+                <img src="{{ aluno.user|foto_perfil_url }}" class="avatar-list" alt="{{ aluno.nome_completo }}">
+                <span>{{ aluno.nome_completo }}</span>
+                {% if aluno.possui_necessidade_especial %}
+                  <i class="fa-solid fa-universal-access" style="color: var(--accent-cyan); margin-left: 5px; font-size: 0.95rem;" title="PCD: {{ aluno.descricao_necessidade|default:'Necessidade não especificada' }}"></i>
+                  
+                  {# Link para o documento PCD - Apenas Gestores podem ver #}
+                  {% if request.user.gestor or request.user.is_superuser %}
+                    {% if aluno.ficha_medica.comprovante_pcd %}
+                      <a href="{{ aluno.ficha_medica.comprovante_pcd.url }}" target="_blank" class="ms-1" title="Ver Comprovante PCD" style="color: var(--accent-cyan); opacity: 0.8; transition: opacity 0.2s;">
+                        <i class="fa-solid fa-file-pdf" style="font-size: 0.85rem;"></i>
+                      </a>
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+                {% if aluno.ficha_medica.alergias %}
+                  <i class="fa-solid fa-hand-dots" style="color: var(--accent-amber); margin-left: 5px; font-size: 0.95rem;" title="Alergia(s): {{ aluno.ficha_medica.alergias }}"></i>
+                {% endif %}
+              </div>
+            </td>
+            <td class="tabela-info">{{ aluno.user.email }}</td>
+            <td class="tabela-info">{{ aluno.turma.nome }}</td>
+
+            <td class="coluna-acoes">
+              <div class="acoes-grupo">
+                <a href="{% url 'visualizar_saude_aluno' aluno.id %}" class="acao-btn" title="Saúde/Ficha Médica">
+                  <i class="fa-solid fa-heart-pulse" style="color: var(--accent-ruby);"></i>
+                </a>
+
+                <a href="{% url 'historico_leituras_aluno' aluno.id %}" class="acao-btn" title="Histórico de Biblioteca">
+                  <i class="fa-solid fa-book-bookmark" style="color: var(--accent-cyan);"></i>
+                </a>
+                
+                <a href="{% url 'editar_aluno' aluno.id %}" class="acao-btn" title="Editar">
+                  <i class="fa-solid fa-pen-to-square acao-editar"></i>
+                </a>
+
+                {# Ação desativar: is_active=False #}
+                <form action="{% url 'desativar_usuario' aluno.user.id %}" method="post">
+                  {% csrf_token %}
+                  <button type="submit" class="acao-btn" title="Desativar"
+                          onclick="return confirm('Deseja suspender o acesso deste discente? (Ele poderá ser reativado depois)')">
+                    <i class="fa-solid fa-user-lock acao-desativar"></i>
+                  </button>
+                </form>
+
+                <a href="{% url 'excluir_aluno' aluno.id %}" class="acao-btn" title="Excluir"
+                   onclick="return confirm('ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE este discente? Todos os dados vinculados podem ser perdidos.')">
+                  <i class="fa-solid fa-trash acao-excluir"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="4" class="tabela-info" style="text-align:center; padding:15px;">
+              Nenhum aluno encontrado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+{% endblock %}  

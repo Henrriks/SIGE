@@ -1,0 +1,137 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Histórico de Frequência — {{ disciplina.nome }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/historico_de_frequencia.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="pagina-conteudo">
+
+<div class="breadcrumb">
+  <a href="{% url 'disciplinas_professor' %}"><i class="fa-solid fa-house"></i> Início</a>
+  <i class="fa-solid fa-chevron-right"></i>
+  <a href="{% url 'disciplinas_professor' %}">Minhas Turmas</a>
+  <i class="fa-solid fa-chevron-right"></i>
+  <span>Histórico — {{ disciplina.nome }}</span>
+</div>
+
+<div class="freq-header">
+  <div class="freq-header__left">
+    <h1><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Frequência</h1>
+    <p>{{ disciplina.nome }} &mdash; {{ disciplina.turma }}</p>
+  </div>
+  <div class="freq-header__action" style="display: flex; gap: 10px;">
+    <a href="{% url 'visualizar_disciplinas' disciplina.id %}" style="background: rgba(148, 163, 184, 0.1); color: var(--text-secondary); border-color: var(--border-mid);">
+      <i class="fa-solid fa-arrow-left"></i> Voltar ao Diário
+    </a>
+    <a href="{% url 'lancar_chamada' disciplina.id %}">
+      <i class="fa-solid fa-plus"></i> Nova chamada
+    </a>
+  </div>
+</div>
+
+
+{% if resumo_por_data %}
+{% with total_aulas=resumo_por_data|length %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-card__icon stat-card__icon--blue">
+      <i class="fa-solid fa-calendar-check"></i>
+    </div>
+    <div>
+      <div class="stat-card__val">{{ total_aulas }}</div>
+      <div class="stat-card__lbl">Aulas registradas</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__icon stat-card__icon--green">
+      <i class="fa-solid fa-circle-check"></i>
+    </div>
+    <div>
+      <div class="stat-card__val" id="total-presencas">—</div>
+      <div class="stat-card__lbl">Total de presenças</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__icon stat-card__icon--red">
+      <i class="fa-solid fa-circle-xmark"></i>
+    </div>
+    <div>
+      <div class="stat-card__val" id="total-faltas">—</div>
+      <div class="stat-card__lbl">Total de faltas</div>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-card__icon stat-card__icon--yellow">
+      <i class="fa-solid fa-users"></i>
+    </div>
+    <div>
+      <div class="stat-card__val">{{ resumo_por_data.0.total }}</div>
+      <div class="stat-card__lbl">Alunos na turma</div>
+    </div>
+  </div>
+</div>
+{% endwith %}
+
+<div class="hist-card">
+  <div class="hist-card__head">
+    <span>Data da aula</span>
+    <span style="text-align:center;" class="col-total">Total</span>
+    <span style="text-align:center;">Presentes</span>
+    <span style="text-align:center;">Faltas</span>
+    <span class="col-pct">% Presença</span>
+  </div>
+
+  {% for r in resumo_por_data %}
+  <a href="{% url 'lancar_chamada' disciplina.id %}?data={{ r.data|date:'Y-m-d' }}" class="hist-row"
+     data-presencas="{{ r.presencas }}" data-faltas="{{ r.faltas }}">
+    <div class="hist-row__date">
+      <i class="fa-solid fa-calendar-day"></i>
+      {{ r.data|date:"d/m/Y" }}
+      {% now "Y-m-d" as hoje %}
+      {% if r.data|date:"Y-m-d" == hoje %}
+        <span class="badge-hoje">Hoje</span>
+      {% endif %}
+    </div>
+    <div class="hist-row__num hist-row__num--total">{{ r.total }}</div>
+    <div class="hist-row__num hist-row__num--present">{{ r.presencas }}</div>
+    <div class="hist-row__num hist-row__num--absent">{{ r.faltas }}</div>
+    <div class="pct-wrap">
+      {% if r.total > 0 %}
+        {% widthratio r.presencas r.total 100 as pct_calc %}
+        <div class="pct-bar">
+          <div class="pct-bar__fill" style="width:{{ pct_calc }}%"></div>
+        </div>
+        <span class="pct-val">{{ pct_calc }}%</span>
+      {% else %}
+        <span class="pct-val" style="color:var(--text-muted);">—</span>
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="hist-card">
+  <div class="empty-state">
+    <i class="fa-solid fa-calendar-xmark"></i>
+    <p>Nenhuma chamada registrada para esta disciplina ainda.</p>
+    <a href="{% url 'lancar_chamada' disciplina.id %}" class="btn-nova-chamada">
+      <i class="fa-solid fa-plus"></i> Lançar primeira chamada
+    </a>
+  </div>
+</div>
+{% endif %}
+
+</div>{# /pagina-conteudo #}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'core/js/attendance.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => initHistoryStats());
+</script>
+{% endblock %}

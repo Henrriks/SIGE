@@ -1,0 +1,188 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Saúde do Aluno — {{ aluno.nome_completo }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/gestao_painel.css' %}">
+<style>
+    .painel-sige { overflow-x: hidden; width: 100%; }
+    .medical-card { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+    .info-group { margin-bottom: 2rem; background: var(--bg-surface); padding: 1.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle); }
+    .info-group h3 { margin-bottom: 1rem; color: var(--primary); font-size: 1.1rem; border-bottom: 1px solid var(--border-subtle); padding-bottom: 0.5rem; display: flex; align-items: center; gap: 0.8rem; }
+    .data-row { display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid var(--bg-base); }
+    .data-label { color: var(--text-muted); font-weight: 500; font-size: 0.85rem; }
+    .data-value { color: var(--text-primary); font-weight: 600; }
+    .alerta-saude { background: hsla(350, 85%, 60%, 0.1); border: 1px solid var(--accent-ruby); color: var(--accent-ruby); padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+
+    @media (max-width: 992px) {
+        .medical-card { grid-template-columns: 1fr; gap: 1rem; }
+    }
+
+    @media (max-width: 768px) {
+        .header-painel { flex-direction: column; align-items: stretch; margin-bottom: 20px !important; }
+        .header-acoes { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .btn-sige-primario, .btn-sige-secundario { width: 100%; justify-content: center; }
+        .glass-grid { grid-template-columns: 1fr !important; gap: 1rem !important; }
+        .info-group { padding: 1.25rem 1rem !important; margin-bottom: 1.25rem !important; }
+        .info-group h3 { font-size: 1rem !important; }
+        .sige-glass-card { padding: 1.5rem 1.25rem !important; }
+        .sige-glass-card h2 { font-size: 1.4rem !important; }
+        .alerta-saude { padding: 0.8rem 1rem !important; font-size: 0.85rem !important; }
+    }
+</style>
+
+
+
+{% endblock %}
+
+{% block content %}
+<section class="painel-sige">
+    <header class="header-painel">
+        <div class="header-esquerda">
+            <span class="header-label">Gestão de Saúde · {{ aluno.turma.nome }}</span>
+            <h1>Ficha Médica: <span class="nome-destaque">{{ aluno.nome_completo }}</span></h1>
+        </div>
+        <div class="header-acoes">
+            {% if is_gestor %}
+            <a href="{% url 'editar_ficha_medica' aluno.id %}" class="btn-sige-primario">
+                <i class="fa-solid fa-file-medical"></i> Atualizar Dados
+            </a>
+            {% endif %}
+            <a href="javascript:history.back()" class="btn-sige-secundario">
+                <i class="fa-solid fa-chevron-left"></i> Voltar
+            </a>
+        </div>
+    </header>
+
+    <div class="medical-card">
+        <div class="info-principal">
+            {# ── CARTÃO DIGITAL PREMIUM (GLASSMORPHISM) ── #}
+            <div class="sige-glass-card" style="padding: 2rem; margin-bottom: 2rem; border-left: 5px solid var(--accent-ruby);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+                    <div>
+                        <span style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--accent-ruby); font-weight: 800; display: block; margin-bottom: 5px;">SIGE Health Management</span>
+                        <h2 style="margin: 0; font-size: 1.8rem; color: var(--text-primary);">Cartão Digital de Saúde</h2>
+                    </div>
+                    <div style="font-size: 2.5rem; color: var(--accent-ruby); opacity: 0.8; animation: heartBeat 1.5s infinite;">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                </div>
+
+                <div class="glass-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1.5rem;">
+
+                    <div class="glass-info">
+                        <span class="data-label" style="display: block; margin-bottom: 5px;">Tipo Sanguíneo</span>
+                        <span class="data-value" style="font-size: 1.4rem; color: var(--accent-ruby);">{{ ficha.get_tipo_sanguineo_display|default:"--" }}</span>
+                    </div>
+                    <div class="glass-info">
+                        <span class="data-label" style="display: block; margin-bottom: 5px;">Status Inclusivo</span>
+                        <span class="data-value" style="font-size: 1.1rem; color: var(--text-primary);">
+                            {% if aluno.possui_necessidade_especial %}
+                            <i class="fa-solid fa-universal-access" style="color: var(--accent-violet);"></i> PCD Ativo
+                            {% else %}
+                            Padronizado
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="glass-info">
+                        <span class="data-label" style="display: block; margin-bottom: 5px;">Fator de Alerta</span>
+                        <span class="data-value" style="font-size: 1rem; color: {% if ficha.alergias %}var(--accent-ruby){% else %}var(--accent-emerald){% endif %};">
+                            {% if ficha.alergias %}Risco Alérgico{% else %}Seguro / Nominal{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ALERGIAS E ALERTAS -->
+            {% if ficha.alergias or aluno.possui_necessidade_especial %}
+            <div class="alerta-saude sige-glass" style="border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid var(--accent-ruby);">
+                <i class="fa-solid fa-triangle-exclamation" style="color: var(--accent-ruby);"></i>
+                <strong style="color: var(--text-primary);">ALERTA CRÍTICO:</strong> 
+                <span style="color: var(--text-secondary);">
+                    {% if ficha.alergias %}Alergia(s): {{ ficha.alergias }}{% endif %}
+                    {% if aluno.possui_necessidade_especial %}| PCD: {{ aluno.descricao_necessidade }}{% endif %}
+                </span>
+            </div>
+            {% endif %}
+
+            <div class="info-group">
+                <h3><i class="fa-solid fa-notes-medical"></i> Detalhes Clínicos Adicionais</h3>
+                <div class="data-row" style="flex-direction: column; align-items: flex-start;">
+                    <span class="data-label">Medicamentos Contínuos</span>
+                    <p class="data-value">{% if ficha.medicamentos_continuos %}{{ ficha.medicamentos_continuos }}{% else %}Nenhum registrado{% endif %}</p>
+                </div>
+                <div class="data-row" style="flex-direction: column; align-items: flex-start;">
+                    <span class="data-label">Observações Médicas</span>
+                    <p class="data-value" style="font-weight: 400; font-size: 0.9rem;">{{ ficha.observacoes_medicas|default:"Sem observações extras." }}</p>
+                </div>
+
+                {% if ficha.comprovante_pcd and is_gestor %}
+                <div style="margin-top: 20px; padding: 15px; background: rgba(var(--accent-cyan-rgb), 0.05); border-radius: 12px; border: 1px dashed var(--accent-cyan); display: flex; align-items: center; justify-content: space-between;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <i class="fa-solid fa-file-medical" style="color: var(--accent-cyan); font-size: 1.2rem;"></i>
+                        <div>
+                            <strong style="display: block; font-size: 0.85rem; color: var(--text-primary);">Laudo / Comprovante PCD</strong>
+                            <small style="color: var(--text-muted);">Documento disponível para consulta</small>
+                        </div>
+                    </div>
+                    <a href="{{ ficha.comprovante_pcd.url }}" target="_blank" class="btn-sige-primario" style="padding: 8px 16px; font-size: 0.75rem; background: var(--accent-cyan); box-shadow: 0 4px 10px rgba(var(--accent-cyan-rgb), 0.3);">
+                        <i class="fa-solid fa-eye"></i> Visualizar Documento
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="info-group">
+                <h3><i class="fa-solid fa-syringe"></i> Histórico de Vacinação</h3>
+                {% if ficha.vacinas.all %}
+                <div class="sige-table-wrapper" style="background: transparent; border: none; margin-bottom: 0;">
+                    <table class="tabela-sige sige-table table-stack" style="background: transparent;">
+
+                        <thead>
+                            <tr>
+                                <th style="background: rgba(255,255,255,0.02);">Vacina</th>
+                                <th style="background: rgba(255,255,255,0.02);">Data dose</th>
+                                <th style="background: rgba(255,255,255,0.02);">Lote</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for v in ficha.vacinas.all %}
+                            <tr>
+                                <td data-label="Vacina">{{ v.nome_vacina }}</td>
+                                <td data-label="Data">{{ v.data_dose|date:"d/m/Y" }}</td>
+                                <td data-label="Lote">{{ v.lote|default:"-" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% else %}
+                <p class="data-value" style="opacity: 0.5; text-align: center; padding: 20px;">Nenhuma vacina registrada.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="info-contato">
+            <div class="info-group sige-glass" style="border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-lg);">
+                <h3 style="color: var(--accent-emerald);"><i class="fa-solid fa-phone-flip"></i> Emergência 24h</h3>
+                <div class="data-row" style="flex-direction: column; align-items: flex-start;">
+                    <span class="data-label">Contato Principal</span>
+                    <span class="data-value" style="font-size: 1.1rem;">{{ ficha.contato_emergencia_nome|default:"Não informado" }}</span>
+                </div>
+                <div class="data-row" style="flex-direction: column; align-items: flex-start;">
+                    <span class="data-label">Telefone</span>
+                    <a href="tel:{{ ficha.contato_emergencia_fone }}" class="data-value" style="color: var(--accent-emerald); font-size: 1.4rem; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-square-phone"></i> {{ ficha.contato_emergencia_fone|default:"-" }}
+                    </a>
+                </div>
+            </div>
+            
+            <div class="info-group" style="text-align: center; background: transparent; border: none;">
+                <p style="font-size: 0.75rem; color: var(--text-muted);">Sincronizado via SIGE Database<br>Última atualização: {{ ficha.ultima_atualizacao|date:"d/m/Y H:i" }}</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

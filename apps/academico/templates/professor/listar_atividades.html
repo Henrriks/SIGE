@@ -1,0 +1,433 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Atividades e Provas | {{ disciplina.nome }}{% endblock %}
+
+{% block extra_css %}
+<!-- Styling for activities -->
+<style>
+    .main-area {
+        padding: 32px 28px 48px;
+        font-family: 'DM Sans', sans-serif;
+        color: var(--text-primary);
+        animation: fadeIn 0.4s ease-out;
+    }
+
+    .header-painel {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        margin-bottom: 30px;
+    }
+
+    .header-esquerda {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .header-label {
+        font-size: .72rem;
+        font-weight: 600;
+        letter-spacing: .14em;
+        color: var(--accent-violet);
+        text-transform: uppercase;
+    }
+
+    .header-painel h1 {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .header-painel h1 .destaque {
+        color: var(--accent-violet);
+        position: relative;
+    }
+
+    .btn-magic {
+        background: hsla(160, 65%, 52%, 0.12);
+        border: 1px solid var(--accent-emerald);
+        color: var(--accent-emerald);
+        letter-spacing: 0.03em;
+        padding: 10px 24px;
+        border-radius: var(--radius-md);
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-magic:hover {
+        background: hsla(160, 65%, 52%, 0.22);
+        transform: translateY(-1.5px);
+    }
+
+    .atividades-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
+    .atividade-card {
+        background: var(--bg-surface);
+        padding: 20px;
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-subtle);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        transition: transform 0.2s;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .atividade-card:hover {
+        transform: translateY(-4px);
+        border-color: var(--primary);
+    }
+
+    .atividade-tipo {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 700;
+        display: inline-block;
+        width: max-content;
+    }
+
+    .atividade-tipo.tipo-prova {
+        background: rgba(251, 191, 36, 0.15);
+        color: var(--accent-amber);
+    }
+
+    .atividade-tipo.tipo-trabalho {
+        background: rgba(52, 211, 153, 0.15);
+        color: var(--accent-emerald);
+    }
+
+    .atividade-tipo.tipo-atividade {
+        background: rgba(139, 92, 246, 0.15);
+        color: var(--accent-violet);
+    }
+
+    .atividade-titulo {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .atividade-data {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .atividade-desc {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+    }
+    .atividade-footer {
+        margin-top: auto;
+        padding-top: 10px;
+        display: flex;
+        justify-content: stretch;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .atividade-footer .btn-magic {
+        padding: 6px 12px;
+        font-size: 0.75rem;
+        min-width: 0;
+        white-space: normal;
+        line-height: 1.25;
+        flex: 1 1 170px;
+        justify-content: center;
+        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .atividade-footer .btn-magic i {
+        flex-shrink: 0;
+    }
+
+    .gabarito-pill {
+        font-size: 0.72rem;
+        font-weight: 700;
+        border-radius: 999px;
+        padding: 5px 10px;
+        width: fit-content;
+        border: 1px solid transparent;
+    }
+    .gabarito-pill.ok {
+        color: var(--accent-emerald);
+        background: rgba(52, 211, 153, 0.12);
+        border-color: rgba(52, 211, 153, 0.35);
+    }
+    .gabarito-pill.locked {
+        color: var(--accent-amber);
+        background: rgba(251, 191, 36, 0.12);
+        border-color: rgba(251, 191, 36, 0.35);
+    }
+    .gabarito-pill.empty {
+        color: var(--text-muted);
+        background: rgba(148, 163, 184, 0.12);
+        border-color: rgba(148, 163, 184, 0.25);
+    }
+    .gabarito-meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: -6px;
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+    }
+    .btn-gabarito {
+        background: rgba(124, 111, 255, 0.12);
+        border: 1px solid rgba(124, 111, 255, 0.45);
+        color: var(--accent-violet);
+    }
+    .btn-gabarito:hover {
+        background: rgba(124, 111, 255, 0.22);
+    }
+
+    .gabarito-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(9, 14, 26, 0.72);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1200;
+        backdrop-filter: blur(2px);
+    }
+    .gabarito-modal {
+        width: min(520px, calc(100vw - 30px));
+        background: var(--bg-surface);
+        border: 1px solid var(--border-mid);
+        border-radius: 16px;
+        padding: 22px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+    .gabarito-modal h3 {
+        margin: 0 0 8px;
+        font-size: 1.05rem;
+        color: var(--text-primary);
+    }
+    .gabarito-modal p {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 0.88rem;
+        line-height: 1.5;
+    }
+    .gabarito-modal-actions {
+        margin-top: 16px;
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    .btn-modal {
+        border: 1px solid var(--border-mid);
+        border-radius: 10px;
+        padding: 9px 14px;
+        font-weight: 700;
+        font-size: 0.8rem;
+        cursor: pointer;
+        background: var(--bg-elevated);
+        color: var(--text-primary);
+    }
+    .btn-modal.sim {
+        border-color: rgba(52, 211, 153, 0.55);
+        color: var(--accent-emerald);
+        background: rgba(52, 211, 153, 0.12);
+    }
+    .btn-modal.nao {
+        border-color: rgba(251, 191, 36, 0.55);
+        color: var(--accent-amber);
+        background: rgba(251, 191, 36, 0.12);
+    }
+
+    .empty-state {
+        padding: 40px;
+        text-align: center;
+        color: var(--text-muted);
+        background: var(--bg-surface);
+        border-radius: var(--radius-lg);
+        border: 1px dashed var(--border-mid);
+    }
+
+    .btn-voltar {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: rgba(124, 111, 255, 0.08); /* Uso de violeta sutil conforme padrão */
+        border: 1px solid rgba(124, 111, 255, 0.2);
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-decoration: none;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-voltar:hover {
+        background: rgba(124, 111, 255, 0.15);
+        border-color: var(--accent-violet);
+        color: var(--text-primary);
+        transform: translateX(-3px);
+    }
+
+    .btn-voltar i {
+        font-size: 0.85rem;
+        color: var(--accent-violet);
+    }
+
+    @media (max-width: 640px) {
+        .atividade-footer {
+            justify-content: stretch;
+        }
+        .atividade-footer .btn-magic {
+            flex: 1 1 100%;
+            justify-content: center;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-area">
+    <div class="header-painel">
+        <div class="header-esquerda">
+            <span class="header-label">Gestão de Turma · {{ turma.nome }}</span>
+            <h1>Atividades da <span class="destaque">Disciplina</span></h1>
+            <div class="header-breadcrumb" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 5px;">
+                <a href="{% url 'disciplinas_turma' turma.id %}"
+                    style="color: var(--text-secondary); text-decoration: none;">Turma</a>
+                <i class="fa-solid fa-chevron-right" style="font-size: 0.6rem; margin: 0 5px;"></i>
+                <span>{{ disciplina.nome }}</span>
+            </div>
+        </div>
+
+        <div class="header-acoes" style="display: flex; gap: 10px; align-items: center;">
+            <a href="{% url 'visualizar_disciplinas' disciplina.id %}" class="btn-voltar">
+                <i class="fa-solid fa-arrow-left"></i> Voltar ao Diário
+            </a>
+            {% if is_professor %}
+            <a href="{% url 'cadastrar_atividade' disciplina.id %}" class="btn-magic">
+                <i class="fa-solid fa-plus"></i> Adicionar Atividade/Prova
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if atividades %}
+    <div class="atividades-grid">
+        {% for atv in atividades %}
+        <div class="atividade-card">
+            <span class="atividade-tipo tipo-{{ atv.tipo|lower }}">{{ atv.get_tipo_display }}</span>
+            <h3 class="atividade-titulo">{{ atv.titulo }}</h3>
+            <div class="atividade-data">
+                <i class="fa-regular fa-calendar"></i> {{ atv.data|date:"d/m/Y" }}
+            </div>
+            <p class="atividade-desc">{{ atv.descricao|truncatewords:20 }}</p>
+            {% if atv.possui_gabarito %}
+                {% if atv.exibir_gabarito_para_aluno %}
+                    <span class="gabarito-pill ok"><i class="fa-solid fa-lock-open"></i> Gabarito visível para alunos</span>
+                    {% if atv.gabarito_liberado and atv.gabarito_liberado_em %}
+                    <span class="gabarito-meta">
+                        <i class="fa-regular fa-clock"></i> Liberado em {{ atv.gabarito_liberado_em|date:"d/m/Y H:i" }}
+                    </span>
+                    {% endif %}
+                {% else %}
+                    <span class="gabarito-pill locked"><i class="fa-solid fa-lock"></i> Gabarito bloqueado até liberação/prazo</span>
+                {% endif %}
+            {% else %}
+                <span class="gabarito-pill empty"><i class="fa-solid fa-circle-info"></i> Gabarito ainda não cadastrado</span>
+            {% endif %}
+            <div class="atividade-footer">
+                <a href="{% url 'gerenciar_questoes' disciplina.id atv.id %}" class="btn-magic">
+                    <i class="fa-solid fa-question-circle"></i> Gerenciar Questões
+                </a>
+                {% if atv.possui_gabarito and is_professor %}
+                <button type="button" class="btn-magic btn-gabarito"
+                    onclick="abrirModalGabarito('{% url 'controlar_liberacao_gabarito' disciplina.id atv.id %}', '{{ atv.titulo|escapejs }}')">
+                    <i class="fa-solid fa-unlock-keyhole"></i> Liberar Gabarito
+                </button>
+                {% endif %}
+                <a href="{% url 'lancar_notas_atividade' disciplina.id atv.id %}" class="btn-magic">
+                    <i class="fa-solid fa-graduation-cap"></i> Atribuir Notas
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fa-solid fa-folder-open" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.5;"></i>
+        <h3>Nenhuma atividade cadastrada</h3>
+        <p>Ainda não há trabalhos ou provas programadas nesta disciplina.</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="gabarito-modal-overlay" id="gabarito-modal-overlay">
+    <div class="gabarito-modal">
+        <h3 id="gabarito-modal-titulo">Controle de liberação do gabarito</h3>
+        <p>Escolha se o gabarito desta atividade deve ser liberado agora, mantido bloqueado até o prazo final ou cancelar.</p>
+        <form method="post" id="gabarito-form">
+            {% csrf_token %}
+            <input type="hidden" name="decisao" id="gabarito-decisao">
+            <div class="gabarito-modal-actions">
+                <button type="button" class="btn-modal" onclick="fecharModalGabarito()">Cancelar</button>
+                <button type="button" class="btn-modal nao" onclick="enviarDecisaoGabarito('nao')">Não liberar</button>
+                <button type="button" class="btn-modal sim" onclick="enviarDecisaoGabarito('sim')">Sim, liberar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function abrirModalGabarito(actionUrl, tituloAtividade) {
+    const overlay = document.getElementById('gabarito-modal-overlay');
+    const form = document.getElementById('gabarito-form');
+    const titulo = document.getElementById('gabarito-modal-titulo');
+    if (!overlay || !form || !titulo) return;
+    form.action = actionUrl;
+    titulo.textContent = `Controle de gabarito: ${tituloAtividade}`;
+    overlay.style.display = 'flex';
+}
+
+function fecharModalGabarito() {
+    const overlay = document.getElementById('gabarito-modal-overlay');
+    if (overlay) overlay.style.display = 'none';
+}
+
+function enviarDecisaoGabarito(decisao) {
+    const input = document.getElementById('gabarito-decisao');
+    const form = document.getElementById('gabarito-form');
+    if (!input || !form) return;
+    input.value = decisao;
+    form.submit();
+}
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') fecharModalGabarito();
+});
+</script>
+{% endblock %}

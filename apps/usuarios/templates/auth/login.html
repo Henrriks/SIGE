@@ -1,0 +1,160 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br" data-theme="default">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SIGE — Login</title>
+    <!-- Fontes atualizadas para o novo estilo -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'core/css/design_system/tokens.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/design_system/themes.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/tela_login.css' %}?v=3" />
+    <link rel="icon" type="image/x-icon" href="{% static 'core/img/favicon.ico' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem('sige_theme');
+          if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch (e) { /* ignore */ }
+      })();
+    </script>
+    <style>
+      /* Bloqueia a logo da SPLASH SCREEN nativamente para Preto no Azure/Gray para evitar Cache CSS */
+      html[data-theme="cinza-industrial"] .splash-logo,
+      html[data-theme="azul-corporativo"] .splash-logo {
+        filter: brightness(0) drop-shadow(0 0 4px rgba(124, 111, 255, 0.3)) !important;
+      }
+    </style>
+</head>
+<body>
+
+    <!-- SPLASH SCREEN -->
+    <div class="splash" id="splash">
+        <div class="splash-inner">
+            <div class="splash-logo-wrap">
+                <div class="splash-logo-ring">
+                    <!-- SVG para o anel de progresso circular -->
+                    <svg viewBox="0 0 80 80">
+                        <defs>
+                            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="var(--accent-violet)" />
+                                <stop offset="100%" stop-color="var(--accent-cyan)" />
+                            </linearGradient>
+                        </defs>
+                        <circle class="splash-ring-track" cx="40" cy="40" r="38"></circle>
+                        <circle class="splash-ring-progress" id="ringProgress" cx="40" cy="40" r="38"></circle>
+                        <circle class="splash-ring-glow" id="ringGlow" cx="40" cy="40" r="38"></circle>
+                    </svg>
+                    <img src="{% static 'core/img/Logo_Branca.png' %}" alt="Logo" class="splash-logo" />
+                </div>
+                <span class="splash-nome">SIGE</span>
+            </div>
+            <p class="splash-sub">Iniciando ambiente seguro</p>
+            
+            <div class="splash-progress-container">
+                <div class="splash-progress-track">
+                    <div class="splash-progress-bar" id="splashBar"></div>
+                </div>
+            </div>
+
+            <div class="splash-steps">
+                <span class="step-item" id="s1"><i class="fas fa-circle-notch fa-spin"></i> Carregando módulos</span>
+                <span class="step-item" id="s2"><i class="fas fa-circle-notch fa-spin"></i> Verificando sessão</span>
+                <span class="step-item" id="s3"><i class="fas fa-circle-notch fa-spin"></i> Preparando interface</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEEDBACK OVERLAY -->
+    <div class="feedback-overlay" id="feedbackOverlay">
+        <div class="feedback-box" id="feedbackBox">
+            <div class="feedback-icon-wrap">
+                <i class="fas fa-check" id="feedbackIcon"></i>
+            </div>
+            <p class="feedback-msg" id="feedbackMsg">Acesso concedido!</p>
+        </div>
+    </div>
+
+    <!-- PÁGINA PRINCIPAL -->
+    <div class="page" id="page" data-errors="{% if form.errors %}1{% else %}0{% endif %}">
+
+        <!-- Partículas de fundo -->
+        <div class="particle p1"></div>
+        <div class="particle p2"></div>
+        <div class="particle p3"></div>
+        <div class="particle p4"></div>
+        <div class="particle p5"></div>
+
+        <div class="login-card" id="loginCard">
+            <!-- Borda Animada baseada em inputs -->
+            <div class="card-border" id="cardBorder"></div>
+
+            <!-- LOGO AREA -->
+            <div class="logo-area">
+                <div class="logo-ring" id="mainLogoRing">
+                    <img src="{% static 'core/img/Logo_Branca.png' %}" alt="Logo" class="logo-img" />
+                </div>
+                <h1 class="brand-name">SIGE</h1>
+                <p class="brand-sub">Sistema Integrado de Gestão Escolar</p>
+            </div>
+
+            <div class="divider">
+                <span class="divider-label">Identificação</span>
+            </div>
+
+            <!-- FORM -->
+            <form method="post" id="loginForm" novalidate autocomplete="off">
+                {% csrf_token %}
+
+                <!-- E-mail -->
+                <div class="field-wrap" id="wrap-email">
+                    <label class="field-label" for="id_email">E-mail Corporativo</label>
+                    <div class="field-box">
+                        <!-- O ID 'icon-email' permite trocar para envelope aberto no JS -->
+                        <i class="fas fa-envelope field-icon" id="icon-email"></i>
+                        {{ form.email }}
+                        <span class="field-accent"></span>
+                    </div>
+                    <span class="field-error" id="err-email"></span>
+                </div>
+
+                <!-- Senha -->
+                <div class="field-wrap" id="wrap-password">
+                    <label class="field-label" for="id_password">Chave de Acesso</label>
+                    <div class="field-box">
+                        <!-- O ID 'icon-password' permite trocar para cadeado aberto no JS -->
+                        <i class="fas fa-lock field-icon" id="icon-password"></i>
+                        {{ form.password }}
+                        <button type="button" class="toggle-pw" id="togglePw" title="Mostrar/Esconder senha">
+                            <i class="fas fa-eye" id="eyeIcon"></i>
+                        </button>
+                        <span class="field-accent"></span>
+                    </div>
+                    <span class="field-error" id="err-password"></span>
+                </div>
+
+                {% if form.errors %}
+                <div class="global-error">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    <span>Usuário ou senha não reconhecidos.</span>
+                </div>
+                {% endif %}
+
+                <!-- Botão de Ação -->
+                <button type="submit" class="btn-entrar" id="btnEntrar">
+                    <span class="btn-text">CONECTAR</span>
+                    <span class="btn-loader"><i class="fas fa-circle-notch fa-spin"></i></span>
+                    <span class="btn-shimmer"></span>
+                </button>
+
+                <a href="{% url 'password_reset' %}" class="forgot-link">Solicitar nova senha</a>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'core/js/auth_login.js' %}"></script>
+    <script src="{% static 'core/js/theme_manager.js' %}"></script>
+</body>
+</html>

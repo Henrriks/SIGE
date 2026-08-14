@@ -1,0 +1,118 @@
+{# ============================================================ #}
+{# template: gestor/listar_gestores.html                       #}
+{# view   : listar_gestores                                    #}
+{# contexto: gestores (QuerySet), query (str)                  #}
+{# FIX: removido bloco user_info (inexistente em base.html);   #}
+{#      removida URL inexistente editar_perfil_super;           #}
+{#      proteção de editar/excluir: apenas superusuário        #}
+{#      (conforme @user_passes_test na view);                   #}
+{#      acesso a user.gestor protegido com hasattr antes do    #}
+{#      acesso ao cargo para evitar AttributeError.            #}
+{# ============================================================ #}
+{% extends 'core/base.html' %}
+{% load static %}
+{% load custom_tags %}
+
+{% block title %}Gestores{% endblock %}
+{% block header_title %}Gestores{% endblock %}
+
+{% block extra_css %}
+{# Folha de estilo da listagem de gestores #}
+<link rel="stylesheet" href="{% static 'core/css/listar_gestores.css' %}?v=2">
+{# Font Awesome — ícones dos botões de ação #}
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<main class="conteudo-principal">
+
+  {# ── Cabeçalho com botão voltar e adicionar ── #}
+  <div class="header-docentes">
+
+    {# Volta para a tela de gerenciar usuários #}
+    <a href="{% url 'usuarios' %}">
+      <button class="btn-voltar">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+    </a>
+
+    <h1 class="titulo-pagina">Gestores</h1>
+
+    {# Botão de cadastrar novo gestor #}
+    <a href="{% url 'cadastrar_gestor' %}">
+      <button class="btn-adicionar">
+        Adicionar Gestor
+      </button>
+    </a>
+  </div>
+
+  {# ── Card principal com tabela ── #}
+  <div class="card-tabela">
+    <div class="container-tabela">
+      <table class="tabela-docentes">
+        <thead>
+          <tr>
+            <th class="coluna-nome">Nome</th>
+            <th class="coluna-email">Cargo</th>
+            <th class="coluna-email">E-mail</th>
+            <th class="coluna-acoes">Ações</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for gestor in gestores %}
+          <tr>
+            {# Dados do gestor #}
+            <td>
+              <div class="user-info-cell">
+                <img src="{{ gestor.user|foto_perfil_url }}" class="avatar-list" alt="{{ gestor.nome_completo }}">
+                <span>{{ gestor.nome_completo }}</span>
+              </div>
+            </td>
+            <td>{{ gestor.get_cargo_display }}</td>
+            <td>{{ gestor.user.email }}</td>
+
+            <td class="coluna-acoes">
+              <div class="acoes-grupo">
+                {# Editar gestor #}
+                <a href="{% url 'editar_gestor' gestor.id %}" class="acao-btn" title="Editar">
+                  <i class="fa-solid fa-pen-to-square acao-editar"></i>
+                </a>
+
+                {# Ação desativar: is_active=False #}
+                <form action="{% url 'desativar_usuario' gestor.user.id %}" method="post">
+                  {% csrf_token %}
+                  <button type="submit" class="acao-btn" title="Desativar"
+                          onclick="return confirm('Deseja suspender o acesso deste gestor? (Ele poderá ser reativado depois)')">
+                    <i class="fa-solid fa-user-lock acao-desativar"></i>
+                  </button>
+                </form>
+
+                {# Excluir gestor com confirmação inline #}
+                <a href="{% url 'excluir_gestor' gestor.id %}" class="acao-btn" title="Excluir"
+                   onclick="return confirm('ATENÇÃO: Deseja EXCLUIR DEFINITIVAMENTE este gestor? Todos os dados vinculados podem ser perdidos.')">
+                  <i class="fa-solid fa-trash acao-excluir"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+
+          {% empty %}
+          {# Estado vazio: nenhum gestor cadastrado #}
+          <tr>
+            <td colspan="4"
+                style="text-align:center; padding:15px;">
+              Nenhum gestor encontrado.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {# ── fim container-tabela ── #}
+  </div>
+  {# ── fim card-tabela ── #}
+
+</main>
+{% endblock %}

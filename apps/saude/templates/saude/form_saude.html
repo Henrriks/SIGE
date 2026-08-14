@@ -1,0 +1,305 @@
+{% extends 'core/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Editar Ficha Médica — {{ aluno.nome_completo }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/cadastrar_discente.css' %}?v=6">
+<style>
+    .secao-titulo-ficha {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 32px 0 16px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    .secao-titulo-ficha i {
+        color: var(--theme-primary);
+        font-size: 1.2rem;
+    }
+    .secao-titulo-ficha h3 {
+        font-family: 'Syne', sans-serif;
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    .comprovante-preview-box {
+        background: var(--bg-elevated);
+        border: 1px dashed var(--border-mid);
+        border-radius: var(--radius-md);
+        padding: 15px;
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .btn-visualizar-pcd {
+        color: var(--accent-cyan);
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: underline !important;
+    }
+
+    @media (max-width: 768px) {
+        .main-area { 
+            overflow-x: hidden; 
+            width: 100% !important; 
+            padding: 10px 6px 20px !important; 
+            margin: 0 !important;
+            box-sizing: border-box !important;
+        }
+        .secao-titulo-ficha.full {
+            grid-column: span 1 !important;
+        }
+        .etapa.ativa {
+            gap: 12px !important;
+            align-items: stretch !important;
+        }
+        .header-painel {
+            margin-bottom: 12px !important;
+            gap: 8px !important;
+        }
+        .header-painel h1 {
+            font-size: 1.15rem !important;
+            letter-spacing: -0.02em;
+        }
+        .header-label {
+            font-size: 0.65rem !important;
+        }
+        .form-card {
+            padding: 12px 10px !important;
+            border-radius: 8px !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            border: 1px solid var(--border-subtle) !important;
+            box-sizing: border-box !important;
+        }
+        .form-card-icone {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 14px !important;
+        }
+        .form-card-titulo-texto h2 {
+            font-size: 0.95rem !important;
+        }
+        .form-card-titulo-texto p {
+            font-size: 0.72rem !important;
+        }
+        .header-breadcrumb {
+            display: none;
+        }
+        #pcd-details-container {
+            gap: 8px !important;
+        }
+        .caixa-texto label {
+            font-size: 0.68rem !important;
+        }
+        .caixa-texto input, .caixa-texto select, .caixa-texto textarea {
+            padding: 8px 10px !important;
+            font-size: 0.8rem !important;
+            border-radius: 6px !important;
+        }
+        .form-card-titulo {
+            margin-bottom: 12px !important;
+            padding-bottom: 10px !important;
+            gap: 8px !important;
+        }
+        .btn {
+            padding: 10px 16px !important;
+            font-size: 0.8rem !important;
+            width: 100% !important;
+            justify-content: center !important;
+        }
+        .secao-titulo-ficha {
+            margin: 20px 0 10px !important;
+            gap: 8px !important;
+        }
+        .secao-titulo-ficha h3 {
+            font-size: 0.9rem !important;
+        }
+    }
+</style>
+
+
+
+
+{% endblock %}
+
+{% block content %}
+<div class="main-area">
+
+    <header class="header-painel">
+        <div class="header-esquerda">
+            <span class="header-label">Saúde Escolar / Gestão</span>
+            <h1>Editar <span class="destaque">Ficha Médica</span></h1>
+            <div class="header-breadcrumb">
+                <a href="{% url 'painel_super' %}">Home</a>
+                <i class="fa-solid fa-chevron-right"></i>
+                <a href="{% url 'visualizar_saude_aluno' aluno.id %}">Ficha de {{ aluno.nome_completo }}</a>
+                <i class="fa-solid fa-chevron-right"></i>
+                <span>Editar</span>
+            </div>
+        </div>
+        <div class="header-acoes">
+            <a href="{% url 'visualizar_saude_aluno' aluno.id %}" class="btn-voltar-tab">
+                <i class="fa-solid fa-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </header>
+
+    <div class="form-card">
+        <div class="form-card-titulo">
+            <div class="form-card-icone">
+                <i class="fa-solid fa-notes-medical"></i>
+            </div>
+            <div class="form-card-titulo-texto">
+                <h2>Prontuário de {{ aluno.nome_completo }}</h2>
+                <p>Mantenha os dados clínicos e contatos de emergência atualizados</p>
+            </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="formulario">
+            {% csrf_token %}
+
+            <div class="etapa ativa">
+                <div class="secao-titulo-ficha full" style="border-bottom: 0px; margin-top: 0;">
+                    <i class="fa-solid fa-stethoscope"></i>
+                    <h3>Dados Clínicos e PCD</h3>
+                </div>
+
+
+                <div class="caixa-texto">
+                    <label>Tipo Sanguíneo</label>
+                    {{ form.tipo_sanguineo }}
+                </div>
+
+                <div class="caixa-texto full">
+                    <label class="checkbox-container">
+                        {{ form.condicoes_pcd|attr:"id:id_pcd_toggle" }}
+                        <span>Confirmar condição de PCD</span>
+                    </label>
+                </div>
+
+                <div id="pcd-details-container" style="display: {% if form.instance.condicoes_pcd %}flex{% else %}none{% endif %}; width: 100%; gap: 20px; flex-wrap: wrap;">
+                    <div class="caixa-texto full">
+                        <label>Detalhes da Necessidade</label>
+                        {{ form.detalhes_pcd }}
+                    </div>
+                    <div class="caixa-texto full">
+                        <label>Substituir Laudo/Comprovante PCD</label>
+                        {{ form.comprovante_pcd }}
+                        {% if form.instance.comprovante_pcd %}
+                            <div class="comprovante-preview-box">
+                                <i class="fa-solid fa-file-circle-check" style="color: var(--accent-emerald);"></i>
+                                <span style="font-size: 0.85rem; color: var(--text-secondary);">Documento já cadastrado</span>
+                                <a href="{{ form.instance.comprovante_pcd.url }}" target="_blank" class="btn-visualizar-pcd">
+                                    <i class="fa-solid fa-eye"></i> Visualizar Atual
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="secao-titulo-ficha full">
+                    <i class="fa-solid fa-hand-dots"></i>
+                    <h3>Alergias e Medicação</h3>
+                </div>
+
+
+                <div class="caixa-texto full">
+                    <label>Alergias Conhecidas</label>
+                    {{ form.alergias }}
+                </div>
+                <div class="caixa-texto full">
+                    <label>Medicamentos Contínuos</label>
+                    {{ form.medicamentos_continuos }}
+                </div>
+
+                <div class="secao-titulo-ficha full">
+                    <i class="fa-solid fa-phone-flip"></i>
+                    <h3>Contatos de Emergência</h3>
+                </div>
+
+
+                <div class="caixa-texto dois">
+                    <label>Nome do Responsável</label>
+                    {{ form.contato_emergencia_nome }}
+                </div>
+                <div class="caixa-texto">
+                    <label>Telefone</label>
+                    {{ form.contato_emergencia_fone }}
+                </div>
+
+                <div class="caixa-texto full">
+                    <label>Observações Médicas Adicionais</label>
+                    {{ form.observacoes_medicas }}
+                </div>
+
+                <div class="botoes">
+                    <span></span>
+                    <button type="submit" class="btn salvar" style="margin-left: 0;">
+                        <i class="fa-solid fa-check"></i> Salvar Ficha
+                    </button>
+                </div>
+
+            </div>
+        </form>
+    </div>
+
+    <div class="form-card" style="margin-top: 30px;">
+        <div class="form-card-titulo">
+            <div class="form-card-icone" style="background: rgba(var(--accent-violet-rgb), .12); border-color: rgba(var(--accent-violet-rgb), .2); color: var(--accent-violet);">
+                <i class="fa-solid fa-syringe"></i>
+            </div>
+            <div class="form-card-titulo-texto">
+                <h2>Registrar Vacinação</h2>
+                <p>Adicione novas doses ao histórico do aluno</p>
+            </div>
+        </div>
+
+        <form action="{% url 'adicionar_vacina' aluno.ficha_medica.id %}" method="POST" class="formulario">
+            {% csrf_token %}
+            <div class="etapa ativa" style="align-items: flex-end;">
+                <div class="caixa-texto dois">
+                    <label>Nome da Vacina</label>
+                    <input type="text" name="nome_vacina" class="input-padrao" required placeholder="Ex: Influenza, COVID-19...">
+                </div>
+                <div class="caixa-texto">
+                    <label>Data da Dose</label>
+                    <input type="date" name="data_dose" class="input-padrao" required>
+                </div>
+                <div class="caixa-texto">
+                    <label>Lote (Opcional)</label>
+                    <input type="text" name="lote" class="input-padrao">
+                </div>
+                <div class="botoes" style="grid-column: span 1; border: 0; padding: 0; margin: 0;">
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 5px;">
+                        Adicionar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pcdToggle = document.getElementById('id_pcd_toggle');
+    const pcdDetails = document.getElementById('pcd-details-container');
+    
+    if (pcdToggle && pcdDetails) {
+        pcdToggle.addEventListener('change', function() {
+            pcdDetails.style.display = this.checked ? 'flex' : 'none';
+        });
+    }
+});
+</script>
+{% endblock %}

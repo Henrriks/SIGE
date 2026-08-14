@@ -1,0 +1,158 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Contas Inativas — SIGE{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/painel_dos_usuarios.css' %}?v=5">
+<style>
+    @media (max-width: 640px) {
+        .conteudo-principal-rolavel {
+            padding: 20px 12px 40px !important;
+        }
+        .topo {
+            margin-bottom: 24px !important;
+        }
+        .topo h1 {
+            font-size: 1.4rem !important;
+        }
+        .sige-glass-card {
+            border-radius: 16px !important;
+        }
+        .sige-table.table-stack tr {
+            padding: 8px 0;
+            background: rgba(255, 255, 255, 0.02);
+            margin-bottom: 12px;
+        }
+        .sige-table.table-stack td {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        .pill-filtros {
+            width: 100%;
+            display: flex;
+        }
+        .pill-filtros .pill {
+            flex: 1;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<main class="conteudo-principal-rolavel" style="padding: 32px 24px 60px;">
+
+  {# ── Topo Premium ── #}
+  <div class="topo" style="margin-bottom: 32px;">
+    <div class="topo-esq">
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <a href="{% url 'usuarios' %}" class="btn-voltar-simples" style="text-decoration: none; color: var(--muted); transition: color .2s;">
+             <i class="fa-solid fa-arrow-left"></i>
+          </a>
+          <span class="topo-label">SIGE · Segurança</span>
+      </div>
+      <h1 style="font-size: 1.75rem;">Contas <span style="color: #f43f5e;">Inativas</span></h1>
+    </div>
+
+    <div class="indicadores-header">
+      <div class="topo-stat inactive">
+        <i class="fa-solid fa-circle-xmark"></i>
+        <span>Bloqueados:</span>
+        <strong>{{ usuarios|length }}</strong>
+      </div>
+    </div>
+  </div>
+
+  {# ── Tabela de Usuários Desativados ── #}
+  <div class="card-tabela sige-glass-card" style="padding: 0; overflow: hidden; border-color: rgba(244, 63, 94, 0.2);">
+    <div style="padding: 18px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i class="fa-solid fa-user-lock" style="color: #f43f5e;"></i>
+            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); letter-spacing: 0.02em;">LISTA DE RESTRIÇÕES</span>
+        </div>
+        <div class="pill-filtros">
+            <a href="{% url 'usuarios' %}" class="pill">Todos</a>
+            <a href="{% url 'listar_desativados' %}" class="pill ativo" data-filtro="desativados">Apenas Inativos</a>
+        </div>
+    </div>
+
+    <div class="sige-table-wrapper" style="border: none; border-radius: 0; margin-bottom: 0;">
+        <table class="sige-table table-stack">
+            <thead>
+                <tr>
+                    <th>Identificação</th>
+                    <th>E-mail / Perfil</th>
+                    <th>Suspensão</th>
+                    <th style="text-align: right;">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr>
+                    <td data-label="Identificação">
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                            <span style="font-weight: 700; color: var(--text-primary);">{{ u.username }}</span>
+                            <span style="font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">ID: #{{ u.id }}</span>
+                        </div>
+                    </td>
+                    <td data-label="E-mail / Perfil">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="color: var(--text-secondary); font-size: 0.85rem;">{{ u.email|default:"sem-email@sige.br" }}</span>
+                            <div style="display: flex;">
+                                <span class="badge-perfil" style="font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; background: rgba(124,111,255,0.1); color: var(--accent-violet); border: 1px solid rgba(124,111,255,0.2);">
+                                    {% if u.aluno %}Discente
+                                    {% elif u.professor %}Docente
+                                    {% elif u.gestor %}Gestor
+                                    {% else %}Admin{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </td>
+                    <td data-label="Suspensão">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-regular fa-calendar-xmark" style="color: var(--text-muted); font-size: 0.85rem;"></i>
+                            <span style="color: var(--text-secondary); font-size: 0.82rem;">{{ u.date_joined|date:"d/m/Y · H:i" }}</span>
+                        </div>
+                    </td>
+                    <td data-label="Restauração" style="text-align: right;">
+                        <form action="{% url 'reativar_usuario' u.id %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="btn-sige-emerald"
+                                    style="padding: 8px 16px; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 8px;"
+                                    onclick="return confirm('Confirmar restauração de acesso para {{ u.username }}?')">
+                                <i class="fa-solid fa-shield-heart"></i> Restaurar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4">
+                        <div style="text-align:center; padding:60px 20px;">
+                            <div style="font-size: 3rem; color: var(--border-mid); margin-bottom: 1rem; opacity: 0.3;">
+                                <i class="fa-solid fa-users-viewfinder"></i>
+                            </div>
+                            <h3 style="color: var(--text-primary); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">Ambiente Limpo</h3>
+                            <p style="color: var(--text-secondary); max-width: 240px; margin: 0 auto; line-height: 1.5; font-size: 0.88rem;">
+                                Atualmente não existem<br>
+                                usuários bloqueados no sistema.<br>
+                                <span style="display: block; margin-top: 6px; opacity: 0.8;">Todos os perfis possuem<br>acesso regular.</span>
+                            </p>
+
+
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+  </div>
+
+
+</main>
+{% endblock %}
+

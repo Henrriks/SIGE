@@ -1,0 +1,347 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Infraestrutura e Patrimônio — SIGE{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/gestao_painel.css' %}">
+<link rel="stylesheet" href="{% static 'core/css/infraestrutura.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="painel-sige">
+    <header class="header-painel">
+        <div class="header-esquerda">
+            <span class="header-label">Administrativo · Infraestrutura</span>
+            <h1>Gestão de <span class="nome-destaque">Ativos e Estoque</span></h1>
+        </div>
+        <div class="header-acoes">
+            <a href="{% url 'cadastrar_patrimonio' %}" class="btn-sige-primario">
+                <i class="fa-solid fa-plus"></i> Novo Bem
+            </a>
+            <a href="{% url 'registrar_movimentacao' %}" class="btn-sige-secundario">
+                <i class="fa-solid fa-truck-ramp-box"></i> Movimentar
+            </a>
+        </div>
+    </header>
+
+    {# ════ KPIs ════ #}
+    <section class="infra-dashboard-grid">
+        <div class="sige-glass-card">
+            <div class="card-icon" style="font-size:1.5rem;color:var(--accent-emerald);margin-bottom:12px;">
+                <i class="fa-solid fa-sack-dollar"></i>
+            </div>
+            <div class="card-dados">
+                <p class="passo-label">Valor Investido</p>
+                <h3 style="font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;margin:5px 0;">R$ {{ metricas.valor_investido|floatformat:2 }}</h3>
+                <p style="font-size:.65rem;color:var(--accent-emerald);font-weight:600;">Auditoria Patrimonial</p>
+            </div>
+        </div>
+        <div class="sige-glass-card">
+            <div class="card-icon" style="font-size:1.5rem;color:var(--accent-ruby);margin-bottom:12px;">
+                <i class="fa-solid fa-screwdriver-wrench"></i>
+            </div>
+            <div class="card-dados">
+                <p class="passo-label">Manutenções em Aberto</p>
+                <h3 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin:5px 0;color:var(--accent-ruby);">{{ metricas.manutencoes_pendentes }}</h3>
+                <p style="font-size:.65rem;color:var(--text-muted);">Pendências de reparo</p>
+            </div>
+        </div>
+        <div class="sige-glass-card">
+            <div class="card-icon" style="font-size:1.5rem;color:var(--accent-violet);margin-bottom:12px;">
+                <i class="fa-solid fa-door-open"></i>
+            </div>
+            <div class="card-dados">
+                <p class="passo-label">Ambientes Mapeados</p>
+                <h3 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin:5px 0;">{{ metricas.total_ambientes }}</h3>
+                <p style="font-size:.65rem;color:var(--text-muted);">Salas, Labs e Oficinas</p>
+            </div>
+        </div>
+        <div class="sige-glass-card">
+            <div class="card-icon" style="font-size:1.5rem;color:var(--accent-amber);margin-bottom:12px;">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            <div class="card-dados">
+                <p class="passo-label">Estoque Crítico</p>
+                <h3 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin:5px 0;color:var(--accent-amber);">{{ metricas.itens_criticos }}</h3>
+                <p style="font-size:.65rem;color:var(--text-muted);">Reposição necessária</p>
+            </div>
+        </div>
+    </section>
+
+    {# ════ GRÁFICOS ════ #}
+    <div class="infra-dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)) !important;">
+        <div class="sige-glass-card">
+            <header class="sige-widget-header" style="margin-bottom: 20px;">
+                <h3 style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:800;">
+                    <i class="fa-solid fa-chart-pie" style="color:var(--accent-cyan);"></i> Integridade dos Ativos
+                </h3>
+            </header>
+            <div style="height:220px;"><canvas id="graficoEstadoPatrimonio"></canvas></div>
+        </div>
+        <div class="sige-glass-card">
+            <header class="sige-widget-header" style="margin-bottom: 20px;">
+                <h3 style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:800;">
+                    <i class="fa-solid fa-chart-bar" style="color:var(--accent-violet);"></i> Distribuição por Categoria
+                </h3>
+            </header>
+            <div style="height:220px;"><canvas id="graficoCategoriasPatrimonio"></canvas></div>
+        </div>
+        <div class="sige-glass-card manutencao-foco">
+            <header class="sige-widget-header" style="margin-bottom: 20px;">
+                <h3 style="font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:800;color:var(--accent-ruby);">
+                    <i class="fa-solid fa-bullseye"></i> Foco em Manutenção
+                </h3>
+            </header>
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px 0;">
+                <span class="manutencao-valor">{{ metricas.manutencoes_pendentes }}</span>
+                <p style="color:var(--text-secondary);margin:8px 0 0;font-weight:600;">Reparos Aguardando</p>
+                <div class="manutencao-alerta-box">
+                    <i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-amber);"></i>
+                    Itens em estado precário: <strong>{{ metricas.estado_precario }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# ════ TABS ════ #}
+    <div class="card-listagem">
+        <div class="barra-busca-gestao">
+            <form method="get" class="busca-wrapper">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" name="q" value="{{ request.GET.q|default:'' }}" placeholder="Pesquisar por tombamento, nome, marca ou ambiente..." onchange="this.form.submit()">
+            </form>
+            <div style="display:flex;gap:8px;flex-shrink:0;margin-left:12px;">
+                <span class="status-badge" style="background:var(--bg-elevated);color:var(--text-primary);border:1px solid var(--border-mid);">
+                    <i class="fa-solid fa-layer-group"></i> Todos
+                </span>
+            </div>
+        </div>
+
+        <div style="padding: 0 24px;">
+            <nav class="infra-tab-nav">
+                <button class="tab-btn active" onclick="switchTab('patrimonio', this)">
+                    <i class="fa-solid fa-warehouse"></i> Patrimônio (Bens)
+                </button>
+                <button class="tab-btn" onclick="switchTab('estoque', this)">
+                    <i class="fa-solid fa-boxes-stacked"></i> Almoxarifado (Estoque)
+                </button>
+            </nav>
+        </div>
+
+        {# ABA PATRIMÔNIO #}
+        <div id="tab-patrimonio" class="tab-content active">
+            <div class="sige-table-wrapper">
+                <table class="tabela-sige sige-table table-stack">
+                    <thead>
+                        <tr>
+                            <th>Tombamento</th>
+                            <th>Descrição do Ativo</th>
+                            <th>Localização</th>
+                            <th>Status Físico</th>
+                            <th>Responsável</th>
+                            <th style="text-align:right;">Ações</th>
+                        </tr>
+                    </thead>
+
+
+                <tbody>
+                    {% for p in patrimonios %}
+                    <tr>
+                        <td data-label="Tombamento">
+                            <div class="tombamento-badge">
+                                <i class="fa-solid fa-qrcode"></i>
+                                <code>{{ p.tombamento }}</code>
+                            </div>
+                        </td>
+                        <td data-label="Descrição">
+                            <span style="font-weight:800;color:var(--text-primary);display:block;">{{ p.nome }}</span>
+                            <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;">{{ p.categoria.nome }} · {{ p.marca|default:"Genérico" }}</span>
+                        </td>
+                        <td data-label="Localização">
+                            <span style="font-size:.85rem;color:var(--text-secondary);display:flex;align-items:center;gap:5px;">
+                                <i class="fa-solid fa-location-dot" style="font-size:.7rem;color:var(--text-muted);"></i>
+                                {{ p.ambiente.nome|default:"-" }}
+                            </span>
+                            <span style="font-size:.65rem;color:var(--text-muted);">{{ p.unidade.nome }}</span>
+                        </td>
+                        <td data-label="Status">
+                            <span class="badge-status {% if p.estado_conservacao == 'NOVO' or p.estado_conservacao == 'BOM' %}badge-ok{% elif p.estado_conservacao == 'REGULAR' %}badge-warn{% else %}badge-danger{% endif %}">
+                                {% if p.estado_conservacao == 'NOVO' or p.estado_conservacao == 'BOM' %}<i class="fa-solid fa-circle-check"></i>{% elif p.estado_conservacao == 'REGULAR' %}<i class="fa-solid fa-circle-half-stroke"></i>{% else %}<i class="fa-solid fa-triangle-exclamation"></i>{% endif %}
+                                {{ p.get_estado_conservacao_display }}
+                            </span>
+                        </td>
+                        <td data-label="Responsável">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <img src="https://ui-avatars.com/api/?name={{ p.responsavel.get_full_name|default:'N A' }}&background=random&color=fff&size=40"
+                                     style="width:30px;height:30px;border-radius:50%;border:2px solid var(--border-mid);" alt="">
+                                <span style="font-size:.85rem;font-weight:600;color:var(--text-primary);">{{ p.responsavel.get_full_name|default:"Pendente" }}</span>
+                            </div>
+                        </td>
+                        <td data-label="Ações">
+                            <div class="acoes-tabela" style="justify-content:center;">
+                                <a href="{% url 'editar_patrimonio' p.id %}" title="Editar">
+                                    <i class="fa-solid fa-pencil"></i>
+                                </a>
+                                <a href="#" title="Etiqueta">
+                                    <i class="fa-solid fa-barcode"></i>
+                                </a>
+                                <a href="#" title="Manutenção" class="btn-icone-excluir">
+                                    <i class="fa-solid fa-screwdriver-wrench"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+
+                    {% empty %}
+                    <tr>
+                        <td colspan="6">
+                            <div class="vazio-state">
+                                <i class="fa-solid fa-box-open"></i>
+                                <p>Nenhum ativo registrado para esta busca.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {# ABA ESTOQUE #}
+        <div id="tab-estoque" class="tab-content">
+            <div class="sige-table-wrapper">
+                <table class="tabela-sige sige-table table-stack">
+                    <thead>
+                        <tr>
+                            <th>Insumo</th>
+                            <th>Alocação</th>
+                            <th>Nível de Estoque</th>
+                            <th>U.M</th>
+                            <th>Status Reposição</th>
+                        </tr>
+                    </thead>
+
+
+                <tbody>
+                    {% for s in saldos_estoque %}
+                    <tr>
+                        <td data-label="Insumo"><strong style="color:var(--text-primary);">{{ s.item.nome }}</strong></td>
+                        <td data-label="Alocação"><span style="font-size:.85rem;color:var(--text-secondary);"><i class="fa-solid fa-warehouse"></i> {{ s.unidade.nome }}</span></td>
+                        <td data-label="Estoque">
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <div style="flex-grow:1;height:8px;background:var(--border-mid);border-radius:10px;max-width:100px;overflow:hidden;">
+                                    <div style="height:100%;border-radius:10px;width:{% if s.quantidade > 0 %}70%{% else %}0{% endif %};background:{% if s.quantidade <= s.item.estoque_minimo %}var(--accent-ruby){% else %}var(--accent-emerald){% endif %};"></div>
+                                </div>
+                                <span style="font-weight:800;color:var(--text-primary);">{{ s.quantidade }}</span>
+                            </div>
+                        </td>
+                        <td data-label="U.M"><span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;">{{ s.item.unidade_medida }}</span></td>
+                        <td data-label="Status">
+                            {% if s.quantidade <= s.item.estoque_minimo %}
+                            <span class="badge-status badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> Crítico</span>
+                            {% else %}
+                            <span class="badge-status badge-ok"><i class="fa-solid fa-circle-check"></i> Abastecido</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="vazio-state">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                                <p>Nenhum item em estoque encontrado.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+    // Captura as cores do tema atual via CSS Custom Properties (funciona em qualquer tema)
+    const style = getComputedStyle(document.documentElement);
+    const primary    = style.getPropertyValue('--primary').trim()   || '#4A90E2';
+    const textMuted  = style.getPropertyValue('--text-muted').trim()|| '#8b97bb';
+    const borderMid  = style.getPropertyValue('--border-mid').trim()|| 'rgba(0,0,0,0.1)';
+    const textSecond = style.getPropertyValue('--text-secondary').trim() || '#666';
+
+    const baseConfig = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } }
+    };
+
+    // ── Gráfico Estado de Conservação (Donut) ──────────────────
+    const distEstado = JSON.parse('{{ dist_estado_json|safe }}');
+    new Chart(document.getElementById('graficoEstadoPatrimonio'), {
+        type: 'doughnut',
+        data: {
+            labels: distEstado.labels,
+            datasets: [{
+                data: distEstado.data,
+                backgroundColor: [
+                    'color-mix(in srgb, var(--accent-emerald, #34d399) 80%, transparent)',
+                    '#f59e0b',
+                    '#e11d48'
+                ],
+                backgroundColor: ['#34d399', '#f59e0b', '#e11d48'],
+                borderWidth: 3,
+                borderColor: style.getPropertyValue('--bg-surface') || '#fff',
+                cutout: '72%'
+            }]
+        },
+        options: {
+            ...baseConfig,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: { color: textMuted, boxWidth: 10, font: { size: 10 } }
+                }
+            }
+        }
+    });
+
+    // ── Gráfico Categorias (Barras) ────────────────────────────
+    const distCat = JSON.parse('{{ dist_categorias_json|safe }}');
+    new Chart(document.getElementById('graficoCategoriasPatrimonio'), {
+        type: 'bar',
+        data: {
+            labels: distCat.labels,
+            datasets: [{
+                data: distCat.data,
+                backgroundColor: primary,
+                borderRadius: 8
+            }]
+        },
+        options: {
+            ...baseConfig,
+            scales: {
+                y: {
+                    grid: { color: borderMid },
+                    ticks: { color: textMuted, font: { size: 9 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: textMuted, font: { size: 9 } }
+                }
+            }
+        }
+    });
+
+    // ── Tab Switch ─────────────────────────────────────────────
+    function switchTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        btn.classList.add('active');
+    }
+</script>
+{% endblock %}

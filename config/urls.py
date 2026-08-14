@@ -1,0 +1,126 @@
+"""
+URLconf raiz do SIGE — mapa de rotas HTTP do site inteiro. [Reloaded v2]
+
+O que é: lista de ``path()`` que o Django percorre na ordem até achar
+uma view que atenda à URL.
+
+Como funciona:
+- ``admin/`` → painel administrativo do Django.
+- ``''`` (raiz) → todas as URLs do app ``usuarios`` (login, painéis, etc.).
+- ``academico/`` → turmas, disciplinas, notas, frequência, relatórios.
+- ``calendario/`` → calendário acadêmico e eventos.
+- ``api/ping/`` → JSON de verificação para o front-end (Vite/React).
+- ``api/dashboard/resumo/`` → totais e lista de turmas (dados do banco).
+Em modo DEBUG, acrescenta servir arquivos de ``MEDIA`` (uploads).
+"""
+
+from django.conf import settings
+from rest_framework.permissions import IsAdminUser
+from django.conf.urls.static import static
+from django.contrib import admin
+from django.urls import URLPattern, URLResolver, include, path
+
+from config.api_views import dashboard_resumo, ping
+from config.jwt_views import SIGETokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework.routers import DefaultRouter
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from two_factor.urls import urlpatterns as tf_urls
+
+from apps.comunicacao.api import ComunicadoViewSet
+from apps.academico.api import (
+    NotificacaoViewSet,
+    TurmaViewSet,
+    DisciplinaViewSet,
+    GradeHorarioViewSet,
+    AtividadeProfessorViewSet,
+    FrequenciaViewSet,
+    NotaViewSet,
+    MaterialDidaticoViewSet,
+    AlunoDashboardView,
+    AlunoBoletimView,
+    AlunoPerfilView,
+    AlunoRoteiroView,
+    AlunoMateriaisView,
+)
+from apps.biblioteca.api import BibliotecaViewSet, MeusEmprestimosViewSet
+from apps.saude.api import SaudeViewSet
+
+from apps.financeiro.api import FaturaViewSet, PagamentoViewSet
+from apps.leads.views import LeadViewSet, FunnelStageViewSet
+
+router = DefaultRouter()
+router.register(r"leads", LeadViewSet, basename="leads")
+router.register(r"leads-stages", FunnelStageViewSet, basename="leads-stages")
+router.register(r"academico/turmas", TurmaViewSet, basename="turmas")
+router.register(r"academico/disciplinas", DisciplinaViewSet, basename="disciplinas")
+router.register(r"academico/grade", GradeHorarioViewSet, basename="grade-horario")
+router.register(r"academico/atividades", AtividadeProfessorViewSet, basename="atividades")
+router.register(r"academico/frequencia", FrequenciaViewSet, basename="frequencia")
+router.register(r"academico/notas", NotaViewSet, basename="notas")
+router.register(r"academico/materiais", MaterialDidaticoViewSet, basename="materiais")
+router.register(r"academico/notificacoes", NotificacaoViewSet, basename="notificacoes")
+router.register(r"financeiro/faturas", FaturaViewSet, basename="faturas")
+router.register(r"financeiro/pagamentos", PagamentoViewSet, basename="pagamentos")
+router.register(r'notificacoes', NotificacaoViewSet, basename='api-notificacoes')
+router.register(r'biblioteca/acervo', BibliotecaViewSet, basename='api-biblioteca-acervo')
+router.register(r'biblioteca/meus-livros', MeusEmprestimosViewSet, basename='api-biblioteca-meus-livros')
+router.register(r'saude/minha-ficha', SaudeViewSet, basename='api-saude-ficha')
+
+urlpatterns: list[URLPattern | URLResolver] = [
+    path("admin/", admin.site.urls),
+    path("api/ping/", ping, name="api-ping"),
+    path("api/dashboard/resumo/", dashboard_resumo, name="api-dashboard-resumo"),
+    path("api/token/", SIGETokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    
+    # Endpoints REST API v1 para Mobile
+    path("api/v1/auth/login/", SIGETokenObtainPairView.as_view(), name="api-v1-login"),
+    path("api/v1/aluno/dashboard/", AlunoDashboardView.as_view(), name="api-v1-aluno-dashboard"),
+    path("api/v1/aluno/boletim/", AlunoBoletimView.as_view(), name="api-v1-aluno-boletim"),
+    path("api/v1/aluno/perfil/", AlunoPerfilView.as_view(), name="api-v1-aluno-perfil"),
+    path("api/v1/aluno/roteiro/", AlunoRoteiroView.as_view(), name="api-v1-aluno-roteiro"),
+    path("api/v1/aluno/materiais/", AlunoMateriaisView.as_view(), name="api-v1-aluno-materiais"),
+
+    path("api/", include(router.urls)),
+    path("api/mobile/", include("apps.mobile.urls")),
+
+    # Documentação da API Geral
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema", permission_classes=[IsAdminUser]), name="swagger-ui"),
+    path("api/redoc/", SpectacularRedocView.as_view(url_name="schema", permission_classes=[IsAdminUser]), name="redoc"),
+
+    # Documentação da API Mobile (Apenas Mobile)
+    path("api/schema/mobile/", SpectacularAPIView.as_view(urlconf='apps.mobile.urls'), name="schema-mobile"),
+    path("api/docs/mobile/", SpectacularSwaggerView.as_view(url_name="schema-mobile"), name="swagger-ui-mobile"),
+
+    path("", include("apps.usuarios.urls")),
+    path("academico/", include("apps.academico.urls")),
+    path("calendario/", include("apps.calendario.urls")),
+    path("documentos/", include("apps.documentos.urls")),
+    path("comunicacao/", include("apps.comunicacao.urls")),
+    path("infraestrutura/", include("apps.infraestrutura.urls")),
+    path("saude/", include("apps.saude.urls")),
+    path("biblioteca/", include("apps.biblioteca.urls")),
+    path("dashboards/", include("apps.dashboards.urls")),
+    path("financeiro/", include("apps.financeiro.urls")),
+    path("seguranca/", include("apps.seguranca.urls")),
+    path("ti/", include("apps.ti.urls")),
+    path("health/", include("apps.ti.health_urls")),
+    path("impersonate/", include("impersonate.urls")),
+    path("", include("django_prometheus.urls")),
+    
+    # Honeypots (Bloqueio automático de IPs maliciosos)
+    path("wp-admin/", include("apps.seguranca.urls.honeypot")),
+    path("wp-login.php", include("apps.seguranca.urls.honeypot")),
+    path(".env", include("apps.seguranca.urls.honeypot")),
+    path("xmlrpc.php", include("apps.seguranca.urls.honeypot")),
+    path("phpmyadmin/", include("apps.seguranca.urls.honeypot")),
+    path("config.php", include("apps.seguranca.urls.honeypot")),
+
+    # Rotas de Autenticação Multi-Fator (2FA)
+    path("", include(tf_urls)),
+]
+
+if settings.DEBUG or getattr(settings, "SERVE_MEDIA_FILES", False):
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
